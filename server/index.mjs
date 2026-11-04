@@ -225,6 +225,31 @@ app.get("/api/leaderboard", (req, res) => {
   res.json({ series: rows.map((r) => seriesRow(r, currentUser(req))) });
 });
 
+// ---- genre/format rankings (WEBTOON-style) ----
+app.get("/api/ranking", (req, res) => {
+  const { genre, format, tab = "trending" } = req.query;
+  const where = [];
+  const params = [];
+  if (genre) { where.push("EXISTS (SELECT 1 FROM series_genres g WHERE g.series_id=s.id AND g.genre=?)"); params.push(genre); }
+  if (format && FORMATS.includes(format)) { where.push("s.format = ?"); params.push(format); }
+  const order = tab === "popular" ? "views DESC" : "views7 DESC";
+  const rows = all(
+    `${SERIES_SELECT}
+     ${where.length ? "WHERE " + where.join(" AND ") : ""}
+     ORDER BY ${order} LIMIT 30`, ...params
+  );
+  const list = rows.map((r, i) => {
+    const obj = seriesRow(r, currentUser(req));
+    const prev = get(
+      "SELECT COALESCE(SUM(n),0) AS n FROM views v WHERE v.series_id=? AND v.day >= date('now','-14 days') AND v.day < date('now','-7 days')",
+      r.id
+    ).n;
+    const delta = prev > 0 ? Math.round(((r.views7 - prev) / prev) * 100) : null;
+    return { ...obj, rank: i + 1, delta };
+  });
+  res.json({ series: list });
+});
+
 app.get("/api/search", (req, res) => {
   const q = (req.query.q || "").trim();
   if (!q) return res.json({ series: [], users: [] });
@@ -418,19 +443,27 @@ app.delete("/api/chapters/:id", requireAuth, (req, res) => {
 app.get("/api/reader/:slug/:number", (req, res) => {
   const num = Number(req.params.number);
   const row = get(
-    `SELECT s.*, c.id AS chapter_id, c.title, c.title_en, c.pages, c.number,
+    `SELECT s.*, c.id AS chapter_id, c.title, c.title_en, c.pages, c.number, c.is_publish,
             u.username AS author_username, u.avatar AS author_avatar
      FROM series s JOIN chapters c ON c.series_id = s.id
      JOIN users u ON u.id = s.author_id
-     WHERE s.slug=? AND c.number=? AND c.is_publish=1`, req.params.slug, num
+     WHERE s.slug=? AND c.number=?`, req.params.slug, num
   );
   if (!row) return res.status(404).json({ error: "not_found" });
+  // preview mode: owners may read unpublished (draft) chapters
+  let preview = false;
+  if (!row.is_publish) {
+    const me = currentUser(req);
+    if (!me || me.id !== row.author_id) return res.status(404).json({ error: "not_found" });
+    preview = true;
+  }
   run("INSERT INTO views (series_id,chapter_id,day,n) VALUES (?,?,?,1) ON CONFLICT(series_id,chapter_id,day) DO UPDATE SET n = n + 1",
     row.id, row.chapter_id, new Date().toISOString().slice(0, 10));
   const { key, pages } = chapterPages(row.slug, row.number, row.pages);
   const nextC = get("SELECT number FROM chapters WHERE series_id=? AND number>? AND is_publish=1 ORDER BY number LIMIT 1", row.id, num);
   const prevC = get("SELECT number FROM chapters WHERE series_id=? AND number<? AND is_publish=1 ORDER BY number DESC LIMIT 1", row.id, num);
   res.json({
+    preview,
     series: { slug: row.slug, title: row.title, titleEn: row.title_en, format: row.format, coverColor: row.cover_color, cover: row.cover, author: { username: row.author_username, avatar: row.author_avatar } },
     chapter: { id: row.chapter_id, number: row.number, title: row.title, titleEn: row.title_en, pages: row.pages, key },
     pages,

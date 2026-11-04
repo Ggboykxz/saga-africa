@@ -139,6 +139,9 @@ function SeriesPanel({ s, onChanged }: { s: Series; onChanged: () => void }) {
                   </div>
                 </div>
                 <div className="row" style={{ gap: 6 }}>
+                  {!ch.is_publish && (
+                    <Link href={`/reader/${s.slug}/${ch.number}?preview=1`} className="btn btn-sm btn-ghost">{t("preview_open")}</Link>
+                  )}
                   {ch.is_publish ? (
                     <button className="btn btn-sm btn-ghost" onClick={() => setChapterPublish(ch, false)}>{t("unpublish")}</button>
                   ) : (

@@ -171,8 +171,35 @@ test("stats endpoint + search + leaderboard", async () => {
   assert.ok(lb.body.series.length >= 1);
 });
 
-test("profile patch, weekly schedule, discover", async () => {
+test("ranking + draft preview access", async () => {
+  const rk = await j("/api/ranking?genre=Romance");
+  assert.equal(rk.status, 200);
+  assert.ok(Array.isArray(rk.body.series));
+  const rkAll = await j("/api/ranking?tab=popular");
+  assert.equal(rkAll.status, 200);
+  if (rkAll.body.series.length > 0) {
+    assert.ok(rkAll.body.series[0].rank >= 1);
+    assert.ok("delta" in rkAll.body.series[0]);
+  }
+  // create series + draft, preview access
   await j("/api/auth/login", { method: "POST", body: JSON.stringify({ email: "t@x.test", password: "secret123" }) });
+  const create = await j("/api/series", { method: "POST", body: JSON.stringify({
+    title: "Série Preview", titleEn: "Preview Series", synopsis: "x", synopsisEn: "x", format: "webtoon",
+  }) });
+  const slug = create.body.series.slug;
+  const ch = await j(`/api/series/${slug}/chapters`, { method: "POST", body: JSON.stringify({ title: "Brouillon 1", is_publish: false }) });
+  const num = ch.body.chapter.number;
+  // owner can preview
+  const ok = await j(`/api/reader/${slug}/${num}`);
+  assert.equal(ok.status, 200);
+  assert.equal(ok.body.preview, true);
+  // other users cannot
+  await j("/api/auth/login", { method: "POST", body: JSON.stringify({ email: "fan1@x.test", password: "secret123" }) });
+  const nope = await j(`/api/reader/${slug}/${num}`);
+  assert.equal(nope.status, 404);
+});
+
+test("profile patch, weekly schedule, discover", async () => {  await j("/api/auth/login", { method: "POST", body: JSON.stringify({ email: "t@x.test", password: "secret123" }) });
   const patch = await j("/api/auth/profile", { method: "PATCH", body: JSON.stringify({ bio: "Je fabrique des mondes." }) });
   assert.equal(patch.status, 200);
   assert.equal(patch.body.user.bio, "Je fabrique des mondes.");

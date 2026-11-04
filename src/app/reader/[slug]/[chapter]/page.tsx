@@ -10,6 +10,7 @@ import { Comments } from "@/components/Comments";
 import { getProgress, setProgress } from "@/lib/progress";
 
 type ReaderData = {
+  preview?: boolean;
   series: { slug: string; title: string; titleEn: string; format: string; coverColor: string; cover: string; author: { username: string; avatar: string } };
   chapter: { id: number; number: number; title: string; titleEn: string; pages: number; key: string };
   pages: PageSpec[];
@@ -106,6 +107,7 @@ export default function ReaderPage() {
             <span style={{ width: 30, height: 30, borderRadius: 8, background: "var(--bg-soft)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>◀</span>
             <span style={{ maxWidth: 240, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{seriesTitle}</span>
             <span className="muted" style={{ fontWeight: 400 }}>· #{data.chapter.number} {title}</span>
+            {data.preview && <span className="badge-canvas" style={{ background: "var(--brand)", color: "#240a00" }}>{t("preview_badge")}</span>}
           </Link>
           <div className="row" style={{ gap: 8 }}>
             {!isManga && (

@@ -16,9 +16,9 @@ light novels et artbooks — refaite de zéro, en s'inspirant de
 | Route | Page |
 | --- | --- |
 | `/` | Accueil : hero, statistiques, tendances, Originals, genres, nouveautés, fil communauté |
-| `/catalog` | Catalogue filtrable (format, genre, origine, tri, recherche) |
+| `/catalog` | Catalogue filtrable (format, genre, origine, tri, recherche) + **Classements** (tendance/populaire × genre, delta de progression) |
 | `/series/[slug]` | Fiche série : bannière, synopsis, équipe, stats, chapitres, abonnement, j'aime, commentaires, plafond PEGI |
-| `/reader/[slug]/[chapter]` | **Lecteur double mode** : webtoon vertical (scroll + progrès) / manga droite-à-gauche (clavier, pages) |
+| `/reader/[slug]/[chapter]` | **Lecteur double mode** : webtoon vertical (scroll + progrès) / manga droite-à-gauche (clavier, pages) — **aperçu des brouillons par l'auteur** |
 | `/publish` | Assistant de création de série (titre FR/EN, synopsis, format, genres, tags, couleur d'univers, PEGI, **upload de couverture**) |
 | `/dashboard` | Studio créateur : stats agrégées + **sparklines 14 j**, **gestion de chapitres (brouillons, publication, suppression)**, **édition de série + couverture**, activité récente |
 | `/u/[username]` | Profil public d'auteur + ses séries |
@@ -27,6 +27,7 @@ light novels et artbooks — refaite de zéro, en s'inspirant de
 | `/terms` · `/privacy` | Légal |
 | — (navbar) | **Notifications** en temps réel (cloche, compteur non-lu) |
 | — (lecteur) | **Progression sauvegardée** (reprise), **zoom** webtoon, barre de navigation mobile flottante |
+| — (accueil) | **À découvrir** (séries sous-exposées) + **Programme Hebdo** (Lun→Dim, data-driven) |
 
 **Backend — Express + SQLite (`node:sqlite`, aucune compilation native), port 8788.**
 

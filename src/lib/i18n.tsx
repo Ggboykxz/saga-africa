@@ -182,6 +182,16 @@ const fr: Dict = {
   profile_avatar_label: "Photo de profil",
   edit_profile: "Modifier mon profil",
   profile_saved: "Profil mis à jour ✓",
+  ranking_title: "Classements",
+  ranking_sub: "Le top des séries, par genre et par tendance.",
+  rank_trending: "Tendance",
+  rank_popular: "Populaire",
+  rank_delta_up: "en hausse",
+  rank_delta_down: "en baisse",
+  rank_delta_new: "nouveau",
+  rank_views7: "vues cette semaine",
+  preview_badge: "Brouillon — aperçu auteur",
+  preview_open: "Aperçu",
 };
 
 const en: Dict = {
@@ -362,6 +372,16 @@ const en: Dict = {
   profile_avatar_label: "Profile picture",
   edit_profile: "Edit my profile",
   profile_saved: "Profile updated ✓",
+  ranking_title: "Rankings",
+  ranking_sub: "The top series, by genre and trend.",
+  rank_trending: "Trending",
+  rank_popular: "Popular",
+  rank_delta_up: "up",
+  rank_delta_down: "down",
+  rank_delta_new: "new",
+  rank_views7: "views this week",
+  preview_badge: "Draft — author preview",
+  preview_open: "Preview",
 };
 
 type Lang = "fr" | "en";
