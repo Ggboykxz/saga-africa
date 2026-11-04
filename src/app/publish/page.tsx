@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/lib/i18n";
 import { api } from "@/lib/api";
+import { uploadImage } from "@/lib/upload";
+import { useToast } from "@/lib/toast";
 
 const GENRES = [
   "Action", "Aventure", "Comédie", "Drame", "Fantastique", "Horreur",
@@ -25,6 +27,20 @@ export default function PublishPage() {
   });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [cover, setCover] = useState("");
+  const { push } = useToast();
+
+  const onCoverFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    try {
+      const url = await uploadImage(f);
+      setCover(url);
+      push(t("toast_cover"));
+    } catch {
+      push(t("error_required"));
+    }
+  };
 
   const set = (k: string, v: unknown) => setForm((f) => ({ ...f, [k]: v }));
   const toggle = (k: "genres" | "tags", v: string) =>
@@ -35,7 +51,7 @@ export default function PublishPage() {
     if (!form.title || !form.titleEn || !form.synopsis || !form.synopsisEn) return setError(t("error_required"));
     setBusy(true);
     try {
-      const d = await api.post<{ series: { slug: string } }>("/api/series", form);
+      const d = await api.post<{ series: { slug: string } }>("/api/series", { ...form, cover });
       router.push(`/series/${d.series.slug}?fresh=1`);
     } catch (e: any) {
       setError(e.message === "unauthorized" ? t("comments_signin") : (e.message || t("error_required")));
@@ -97,6 +113,17 @@ export default function PublishPage() {
               />
             ))}
           </div>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 20, display: "flex", gap: 18, alignItems: "center" }}>
+        <div style={{ width: 90, aspectRatio: "3/4", borderRadius: 12, border: "1px solid var(--line-strong)", background: cover ? `url(${cover}) center/cover` : "var(--bg-soft)" }} />
+        <div>
+          <label className="btn btn-ghost btn-sm" style={{ cursor: "pointer", display: "inline-flex" }}>
+            {t("cover_upload")}
+            <input type="file" accept="image/png,image/jpeg,image/webp" style={{ display: "none" }} onChange={onCoverFile} />
+          </label>
+          <p className="tiny muted" style={{ marginTop: 6, marginBottom: 0 }}>{t("cover_upload_hint")}</p>
         </div>
       </div>
 

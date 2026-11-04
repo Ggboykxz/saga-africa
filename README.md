@@ -19,23 +19,27 @@ light novels et artbooks — refaite de zéro, en s'inspirant de
 | `/catalog` | Catalogue filtrable (format, genre, origine, tri, recherche) |
 | `/series/[slug]` | Fiche série : bannière, synopsis, équipe, stats, chapitres, abonnement, j'aime, commentaires, plafond PEGI |
 | `/reader/[slug]/[chapter]` | **Lecteur double mode** : webtoon vertical (scroll + progrès) / manga droite-à-gauche (clavier, pages) |
-| `/publish` | Assistant de création de série (titre FR/EN, synopsis, format, genres, tags, couleur d'univers, PEGI) |
-| `/dashboard` | Studio créateur : stats agrégées, activité récente, ajout de chapitres |
+| `/publish` | Assistant de création de série (titre FR/EN, synopsis, format, genres, tags, couleur d'univers, PEGI, **upload de couverture**) |
+| `/dashboard` | Studio créateur : stats agrégées + **sparklines 14 j**, **gestion de chapitres (brouillons, publication, suppression)**, **édition de série + couverture**, activité récente |
 | `/u/[username]` | Profil public d'auteur + ses séries |
 | `/creators` | Page « Devenir créateur » (lecture / publication / monétisation) |
 | `/sign-in` · `/sign-up` | Auth (sessions) |
 | `/terms` · `/privacy` | Légal |
+| — (navbar) | **Notifications** en temps réel (cloche, compteur non-lu) |
+| — (lecteur) | **Progression sauvegardée** (reprise), **zoom** webtoon, barre de navigation mobile flottante |
 
 **Backend — Express + SQLite (`node:sqlite`, aucune compilation native), port 8788.**
 
-- Auth : inscription/connexion, mots de passe scrypt, sessions, cookie HttpOnly
-- Séries : CRUD, genres/tags, formats (manga, webtoon, nolovel, lightnovel, artbook), accès gratuit/payant, origin/canvas
-- Chapitres : numérotation auto, génération déterministe des planches (SVG)
-- Engagement : j'aime, abonnements, commentaires + réponses + likes
-- Statistiques : vues (7 jours / total), classements (tendance, populaire, nouveau)
+- Auth : inscription/connexion, mots de passe scrypt, sessions, cookie HttpOnly, **rate-limit isolé par famille de routes**
+- Séries : CRUD, genres/tags, formats (manga, webtoon, nolovel, lightnovel, artbook), accès gratuit/payant, origin/canvas, **couverture uploadée**
+- Chapitres : numérotation auto, **brouillons/dépublikation/suppression**, génération déterministe des planches (SVG)
+- Engagement : j'aime, abonnements, commentaires + réponses + likes, **notifications au créateur**
+- Statistiques : vues (7 jours / total / **14 jours par jour**), classements (tendance, populaire, nouveau)
 - Recherche série + auteurs, leaderboards, flux des derniers commentaires
 - Upload (avatar/cover) en base64 → fichiers locaux
-- CORS local, rate-limit léger sur l'auth
+- CORS local
+
+**Tests** : `npm test` → 9 tests d'intégration API (auth, CRUD, brouillons, lecteur, engagement, notifications, stats, upload, rate-limit) sur base temporaire.
 
 ## Lancer
 

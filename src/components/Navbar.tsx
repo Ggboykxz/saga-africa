@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { api, type Me } from "@/lib/api";
+import { timeAgo } from "@/lib/format";
 
 export function Logo({ size = 30 }: { size?: number }) {
   return (
@@ -22,16 +23,50 @@ export function Logo({ size = 30 }: { size?: number }) {
   );
 }
 
+type Notif = { id: number; series_slug: string; text: string; created_at: number; is_read: number };
+
 export function Navbar() {
   const { t, lang, setLang } = useI18n();
   const router = useRouter();
   const [me, setMe] = useState<Me>(null);
   const [q, setQ] = useState("");
-  const [open, setOpen] = useState(false);
+  const [drawer, setDrawer] = useState(false);
+  const [notifs, setNotifs] = useState<Notif[]>([]);
+  const [unread, setUnread] = useState(0);
+  const [bellOpen, setBellOpen] = useState(false);
+  const bellRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     api.get<{ user: Me }>("/api/auth/me").then((d) => setMe(d.user)).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!me) { setUnread(0); return; }
+    let alive = true;
+    const tick = () =>
+      api.get<{ unread: number; items: Notif[] }>("/api/notifications")
+        .then((d) => { if (!alive) return; setUnread(d.unread); setNotifs(d.items); })
+        .catch(() => {});
+    tick();
+    const iv = setInterval(tick, 30000);
+    return () => { alive = false; clearInterval(iv); };
+  }, [me]);
+
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (bellRef.current && !bellRef.current.contains(e.target as Node)) setBellOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+
+  const openBell = async () => {
+    setBellOpen((o) => !o);
+    if (!bellOpen && unread > 0) {
+      await api.post("/api/notifications/read-all");
+      setUnread(0);
+    }
+  };
 
   const logout = async () => {
     await api.post("/api/auth/logout");
@@ -40,6 +75,14 @@ export function Navbar() {
     router.refresh();
   };
 
+  const navLinks = (
+    <>
+      <Link href="/catalog" className="btn btn-sm btn-ghost">{t("nav_explore")}</Link>
+      <Link href="/creators" className="btn btn-sm btn-ghost">{t("nav_creators")}</Link>
+      <Link href="/publish" className="btn btn-sm btn-primary">{t("nav_publish")}</Link>
+    </>
+  );
+
   return (
     <header style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(19,24,31,0.86)", backdropFilter: "blur(14px)", borderBottom: "1px solid var(--line)" }}>
       <div className="container row-between" style={{ height: 60 }}>
@@ -47,15 +90,11 @@ export function Navbar() {
           <Link href="/" className="row" style={{ gap: 9, fontWeight: 800, fontSize: 18, fontFamily: "var(--font-display)" }}>
             <Logo /> {t("brand")}
           </Link>
-          <nav className="row" style={{ gap: 4, marginLeft: 8, display: "flex" }}>
-            <Link href="/catalog" className="btn btn-sm btn-ghost">{t("nav_explore")}</Link>
-            <Link href="/creators" className="btn btn-sm btn-ghost">{t("nav_creators")}</Link>
-            <Link href="/publish" className="btn btn-sm btn-primary">{t("nav_publish")}</Link>
-          </nav>
+          <nav className="row nav-links" style={{ gap: 4, marginLeft: 8 }}>{navLinks}</nav>
         </div>
 
         <form
-          className="row grow"
+          className="row grow nav-search"
           style={{ maxWidth: 340, margin: "0 12px" }}
           onSubmit={(e) => { e.preventDefault(); if (q.trim()) router.push(`/catalog?q=${encodeURIComponent(q.trim())}`); }}
         >
@@ -63,15 +102,40 @@ export function Navbar() {
         </form>
 
         <div className="row" style={{ gap: 6 }}>
-          <button
-            className="btn btn-sm btn-ghost"
-            onClick={() => setLang(lang === "fr" ? "en" : "fr")}
-            title="Language / Langue"
-          >
+          <button className="btn btn-sm btn-ghost" onClick={() => setLang(lang === "fr" ? "en" : "fr")} title="Language / Langue">
             {lang === "fr" ? "EN" : "FR"}
           </button>
           {me ? (
             <>
+              <div ref={bellRef} style={{ position: "relative" }}>
+                <button className="btn btn-sm btn-ghost btn-icon" onClick={openBell} aria-label={t("notif_title")}>
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  {unread > 0 && (
+                    <span style={{ position: "absolute", top: -2, right: -2, minWidth: 17, height: 17, padding: "0 4px", borderRadius: 999, background: "var(--brand)", color: "#240a00", fontSize: 11, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                      {unread > 9 ? "9+" : unread}
+                    </span>
+                  )}
+                </button>
+                {bellOpen && (
+                  <div style={{ position: "absolute", right: 0, top: 40, width: 300, background: "var(--bg-elev)", border: "1px solid var(--line-strong)", borderRadius: "var(--r-lg)", boxShadow: "var(--shadow-3)", overflow: "hidden" }}>
+                    <div className="row-between" style={{ padding: "10px 14px", borderBottom: "1px solid var(--line)" }}>
+                      <strong style={{ fontSize: 14 }}>{t("notif_title")}</strong>
+                    </div>
+                    {notifs.length === 0 ? (
+                      <p className="small muted" style={{ padding: 16 }}>{t("notif_empty")}</p>
+                    ) : (
+                      notifs.map((n) => (
+                        <Link key={n.id} href={`/series/${n.series_slug}`} onClick={() => setBellOpen(false)} style={{ display: "block", padding: "10px 14px", borderBottom: "1px solid var(--line)", fontSize: 13.5 }}>
+                          {n.text} <span style={{ color: "var(--brand-soft)" }}>{t("notif_commented")}</span>
+                          <div className="tiny muted">{timeAgo(n.created_at, lang)}</div>
+                        </Link>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
               <Link href="/dashboard" className="btn btn-sm btn-ghost">{t("nav_dashboard")}</Link>
               <button className="btn btn-sm btn-ghost btn-icon" onClick={logout} title={t("nav_logout")} aria-label={t("nav_logout")}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -85,9 +149,7 @@ export function Navbar() {
               <Link href="/sign-up" className="btn btn-sm btn-electron">{t("nav_signup")}</Link>
             </>
           )}
-          <button className="btn btn-sm btn-ghost btn-icon" style={{ display: "none" }} onClick={() => setOpen(!open)}>
-            ☰
-          </button>
+          <button className="btn btn-sm btn-ghost btn-icon" onClick={() => setDrawer(!drawer)} style={{ display: "none" }}>☰</button>
         </div>
       </div>
     </header>

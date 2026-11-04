@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { I18nProvider } from "@/lib/i18n";
+import { ToastProvider } from "@/lib/toast";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 
@@ -18,9 +19,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="fr">
       <body style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
         <I18nProvider>
-          <Navbar />
-          <main style={{ flex: 1, display: "flex", flexDirection: "column" }}>{children}</main>
-          <Footer />
+          <ToastProvider>
+            <Navbar />
+            <main style={{ flex: 1, display: "flex", flexDirection: "column" }}>{children}</main>
+            <Footer />
+          </ToastProvider>
         </I18nProvider>
       </body>
     </html>

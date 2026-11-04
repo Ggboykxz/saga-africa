@@ -7,11 +7,15 @@ import { useI18n } from "@/lib/i18n";
 import { api, type Series, type Chapter } from "@/lib/api";
 import { SeriesCard } from "@/components/SeriesCard";
 import { Comments } from "@/components/Comments";
+import { SkeletonGrid, SkeletonRow } from "@/components/Skeleton";
+import { useToast } from "@/lib/toast";
 import { nFmt, dateFmt, coverStyle } from "@/lib/format";
+import { getProgress } from "@/lib/progress";
 
 export default function SeriesPage() {
   const { slug } = useParams() as { slug: string };
   const { t, lang } = useI18n();
+  const { push } = useToast();
   const [s, setS] = useState<Series | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [otherWorks, setOtherWorks] = useState<Series[]>([]);
@@ -37,9 +41,28 @@ export default function SeriesPage() {
     }
   }, [s]);
 
-  if (!s) return <p className="container section">…</p>;
+  if (!s) {
+    return (
+      <div className="container section">
+        <div className="skl" style={{ height: 220, borderRadius: "var(--r-lg)" }} />
+        <div style={{ marginTop: -70, display: "flex", gap: 20, position: "relative" }}>
+          <div className="skl" style={{ width: 180, aspectRatio: "3/4", borderRadius: "var(--r-lg)", border: "3px solid var(--bg-elev)" }} />
+          <div style={{ flex: 1 }}>
+            <div className="skl" style={{ height: 26, width: "50%", marginBottom: 12 }} />
+            <div className="skl" style={{ height: 14, width: "80%" }} />
+            <div className="skl" style={{ height: 14, width: "65%", marginTop: 8 }} />
+          </div>
+        </div>
+        <div style={{ marginTop: 36 }}>
+          <SkeletonGrid n={4} />
+        </div>
+      </div>
+    );
+  }
   const title = lang === "fr" ? s.title : s.titleEn;
   const synopsis = lang === "fr" ? s.synopsis : s.synopsisEn;
+  const saved = getProgress(s.slug);
+  const continueChapter = saved && chapters.some((c) => c.number === saved.number) ? saved.number : null;
 
   const toggle = async (kind: "like" | "follow") => {
     if (!me) return alert(t("comments_signin"));
@@ -49,6 +72,8 @@ export default function SeriesPage() {
       liked: kind === "like" ? !!d.liked : s.userState.liked,
       followed: kind === "follow" ? !!d.followed : s.userState.followed,
     } });
+    if (kind === "like") push(d.liked ? t("toast_liked") : t("toast_unliked"));
+    else push(d.followed ? t("toast_followed") : t("toast_unfollowed"));
   };
 
   const acceptWarn = () => {
@@ -92,7 +117,13 @@ export default function SeriesPage() {
           </div>
           <div className="row" style={{ gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
             {chapters.length > 0 && (
-              <Link href={`/reader/${s.slug}/${chapters[0].number}`} className="btn btn-primary btn-lg">{t("read_now")}</Link>
+              continueChapter ? (
+                <Link href={`/reader/${s.slug}/${continueChapter}`} className="btn btn-primary btn-lg">
+                  ▶ {t("continue_reading_cta")} #{continueChapter}
+                </Link>
+              ) : (
+                <Link href={`/reader/${s.slug}/${chapters[0].number}`} className="btn btn-primary btn-lg">{t("read_now")}</Link>
+              )
             )}
             <button className={`btn btn-lg ${s.userState.followed ? "btn-electron" : "btn-ghost"}`} onClick={() => toggle("follow")}>
               {s.userState.followed ? `✓ ${t("following")}` : `+ ${t("follow")}`}

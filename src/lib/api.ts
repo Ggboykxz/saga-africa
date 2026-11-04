@@ -34,6 +34,7 @@ export type Chapter = {
   title_en: string;
   pages: number;
   created_at: number;
+  is_publish?: number;
   views?: number;
 };
 
@@ -79,6 +80,9 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     }).then((r) => j<T>(r));
+  },
+  del<T>(path: string): Promise<T> {
+    return fetch(`${API}${path}`, { method: "DELETE", credentials: "include" }).then((r) => j<T>(r));
   },
 };
 

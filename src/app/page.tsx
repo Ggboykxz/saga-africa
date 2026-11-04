@@ -6,6 +6,7 @@ import { useI18n } from "@/lib/i18n";
 import { api } from "@/lib/api";
 import type { Series } from "@/lib/api";
 import { SeriesCard } from "@/components/SeriesCard";
+import { SkeletonGrid } from "@/components/Skeleton";
 import { nFmt, timeAgo, coverStyle } from "@/lib/format";
 
 function SectionHead({ k, sub }: { k: string; sub?: string }) {
@@ -22,6 +23,7 @@ function SectionHead({ k, sub }: { k: string; sub?: string }) {
 export default function HomePage() {
   const { t } = useI18n();
   const [trending, setTrending] = useState<Series[]>([]);
+  const [popular, setPopular] = useState<Series[]>([]);
   const [originals, setOriginals] = useState<Series[]>([]);
   const [fresh, setFresh] = useState<Series[]>([]);
   const [latestComments, setLatestComments] = useState<any[]>([]);
@@ -29,6 +31,7 @@ export default function HomePage() {
 
   useEffect(() => {
     api.get<{ series: Series[] }>("/api/leaderboard?tab=trending").then((d) => setTrending(d.series)).catch(() => {});
+    api.get<{ series: Series[] }>("/api/leaderboard?tab=popular").then((d) => setPopular(d.series.slice(0, 6))).catch(() => {});
     api.get<{ series: Series[] }>("/api/series?origin=original&sort=new").then((d) => setOriginals(d.series.slice(0, 6))).catch(() => {});
     api.get<{ series: Series[] }>("/api/series?sort=new").then((d) => setFresh(d.series.slice(0, 8))).catch(() => {});
     api.get<{ comments: any[] }>("/api/comments/latest").then((d) => setLatestComments(d.comments)).catch(() => {});
@@ -74,9 +77,39 @@ export default function HomePage() {
       {/* TRENDING */}
       <section className="section-tight container">
         <SectionHead k="home_trending" />
-        <div className="grid grid-cards">
-          {trending.slice(0, 8).map((s, i) => <SeriesCard key={s.slug} s={s} seed={i} />)}
-        </div>
+        {trending.length === 0 ? (
+          <SkeletonGrid n={8} />
+        ) : (
+          <div className="grid grid-cards">
+            {trending.slice(0, 8).map((s, i) => (
+              <div key={s.slug} style={{ position: "relative" }}>
+                <span style={{ position: "absolute", top: -8, left: -6, zIndex: 2, width: 34, height: 34, borderRadius: "50%", background: i < 3 ? "var(--grad-brand)" : "var(--bg-soft)", color: i < 3 ? "#240a00" : "var(--fg-muted)", fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 15, display: "inline-flex", alignItems: "center", justifyContent: "center", border: "2px solid var(--bg)" }}>
+                  {i + 1}
+                </span>
+                <SeriesCard s={s} seed={i} />
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* POPULAR */}
+      <section className="section container" style={{ paddingTop: 24 }}>
+        <SectionHead k="home_popular" />
+        {popular.length === 0 ? (
+          <SkeletonGrid n={6} />
+        ) : (
+          <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 14 }}>
+            {popular.map((s, i) => (
+              <Link key={s.slug} href={`/series/${s.slug}`} className="card card-hover" style={{ display: "block", aspectRatio: "3/4", position: "relative", ...coverStyle(s, i) }}>
+                <span className="badge-canvas" style={{ position: "absolute", top: 10, left: 10, background: "rgba(12,15,20,0.7)", color: "#fff" }}>
+                  👁 {nFmt(s.stats.views)}
+                </span>
+                <div style={{ position: "absolute", bottom: 10, left: 12, right: 12, color: "#fff", fontWeight: 800, fontFamily: "var(--font-display)" }}>{s.title}</div>
+              </Link>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* ORIGINALS */}
@@ -105,9 +138,13 @@ export default function HomePage() {
       {/* FRESH */}
       <section className="section container">
         <SectionHead k="home_fresh" />
-        <div className="grid grid-cards">
-          {fresh.map((s, i) => <SeriesCard key={s.slug} s={s} seed={i + 3} />)}
-        </div>
+        {fresh.length === 0 ? (
+          <SkeletonGrid n={8} />
+        ) : (
+          <div className="grid grid-cards">
+            {fresh.map((s, i) => <SeriesCard key={s.slug} s={s} seed={i + 3} />)}
+          </div>
+        )}
       </section>
 
       {/* COMMUNITY */}

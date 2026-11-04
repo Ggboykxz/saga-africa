@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useI18n } from "@/lib/i18n";
 import { api, type Series } from "@/lib/api";
 import { SeriesCard } from "@/components/SeriesCard";
+import { SkeletonGrid } from "@/components/Skeleton";
 
 const SORTS = ["trending", "popular", "likes", "new", "title"] as const;
 const FORMATS = ["", "manga", "webtoon", "nolovel", "lightnovel", "artbook"] as const;
@@ -59,10 +60,19 @@ function CatalogInner() {
           <option value="original">{t("origin_original")}</option>
           <option value="canvas">{t("origin_canvas")}</option>
         </select>
+        {(format || genre || q || origin) && (
+          <button className="btn btn-sm btn-ghost" onClick={() => { setFormat(""); setGenre(""); setQ(""); setOrigin(""); }}>
+            ✕ {t("clear_filters")}
+          </button>
+        )}
+      </div>
+
+      <div className="tiny muted" style={{ marginBottom: 10 }}>
+        {!loading && `${series.length} ${t("results_count")}`}
       </div>
 
       {loading ? (
-        <p className="muted">…</p>
+        <SkeletonGrid n={12} />
       ) : series.length === 0 ? (
         <div className="card" style={{ padding: 48, textAlign: "center" }}>
           <div style={{ fontSize: 40 }}>🫥</div>

@@ -167,13 +167,14 @@ function Shape({ p, palette }: { p: PanelSpec; palette: string[] }) {
   }
 }
 
-export function PageArt({ page, width = 720 }: { page: PageSpec; width?: number }) {
+export function PageArt({ page, width }: { page: PageSpec; width?: number }) {
   const palette = page.palette;
   const [bg1, bg2] = palette;
   const caption = page.panels.find((p) => p.caption);
   const speech = page.panels.find((p) => p.speech);
+  const style = width ? undefined : { width: "100%", height: "auto", display: "block" };
   return (
-    <svg viewBox="0 0 800 1200" width={width} height={width * 1.5} role="img" aria-label="planche de bande dessinée">
+    <svg viewBox="0 0 800 1200" width={width} height={width ? width * 1.5 : undefined} style={style} role="img" aria-label="planche de bande dessinée">
       <defs>
         <linearGradient id="pagebg" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor={bg1} />
