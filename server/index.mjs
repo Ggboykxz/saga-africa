@@ -98,16 +98,17 @@ function seriesStats(sid) {
   return { views, views7, likes, follows, comments, chapters };
 }
 
-const SERIES_SELECT = `
-  SELECT s.*,
-    (SELECT COUNT(*) FROM likes l WHERE l.series_id = s.id) AS likes,
-    (SELECT COUNT(*) FROM follows f WHERE f.series_id = s.id) AS follows,
-    (SELECT COUNT(*) FROM comments c WHERE c.series_id = s.id) AS comments,
-    (SELECT COUNT(*) FROM chapters ch WHERE ch.series_id = s.id) AS chapters,
-    (SELECT COALESCE(SUM(n),0) FROM views v WHERE v.series_id = s.id) AS views,
-    (SELECT COALESCE(SUM(n),0) FROM views v WHERE v.series_id = s.id AND v.day >= date('now','-7 days')) AS views7,
-    u.username AS author_username, u.avatar AS author_avatar
-  FROM series s JOIN users u ON u.id = s.author_id`;
+const SERIES_COLS = `
+  s.*,
+  (SELECT COUNT(*) FROM likes l WHERE l.series_id = s.id) AS likes,
+  (SELECT COUNT(*) FROM follows f WHERE f.series_id = s.id) AS follows,
+  (SELECT COUNT(*) FROM comments c WHERE c.series_id = s.id) AS comments,
+  (SELECT COUNT(*) FROM chapters ch WHERE ch.series_id = s.id) AS chapters,
+  (SELECT COALESCE(SUM(n),0) FROM views v WHERE v.series_id = s.id) AS views,
+  (SELECT COALESCE(SUM(n),0) FROM views v WHERE v.series_id = s.id AND v.day >= date('now','-7 days')) AS views7,
+  u.username AS author_username, u.avatar AS author_avatar`;
+
+const SERIES_SELECT = `SELECT ${SERIES_COLS} FROM series s JOIN users u ON u.id = s.author_id`;
 
 function seriesRow(row, user) {
   if (!row) return null;
@@ -172,6 +173,19 @@ app.get("/api/auth/me", (req, res) => {
   res.json({ user: u ? { id: u.id, username: u.username, email: u.email, avatar: u.avatar, bio: u.bio, role: u.role } : null });
 });
 
+app.patch("/api/auth/profile", requireAuth, (req, res) => {
+  const b = req.body || {};
+  const sets = [];
+  const params = [];
+  if (b.bio !== undefined) { sets.push("bio = ?"); params.push(String(b.bio).slice(0, MAX_LEN.bio)); }
+  if (b.avatar !== undefined) { sets.push("avatar = ?"); params.push(String(b.avatar).slice(0, 400)); }
+  if (!sets.length) return res.status(400).json({ error: "no_fields" });
+  params.push(req.user.id);
+  db.prepare(`UPDATE users SET ${sets.join(", ")} WHERE id=?`).run(...params);
+  const u = get("SELECT id,username,email,avatar,bio,role FROM users WHERE id=?", req.user.id);
+  res.json({ user: u });
+});
+
 // ---- stats & search ----
 app.get("/api/stats", (req, res) => {
   const byFormat = {};
@@ -219,6 +233,38 @@ app.get("/api/search", (req, res) => {
     .map((r) => seriesRow(r, currentUser(req)));
   const users = all("SELECT id,username,avatar,bio FROM users WHERE username LIKE ? LIMIT 8", like);
   res.json({ series, users });
+});
+
+// ---- weekly publishing schedule (WEBTOON-style) ----
+app.get("/api/weekly", (req, res) => {
+  const rows = all(
+    `SELECT wd.day AS day, ${SERIES_COLS}
+     FROM (SELECT series_id, strftime('%w', datetime(MAX(created_at),'unixepoch')) AS day
+           FROM chapters WHERE is_publish=1 GROUP BY series_id) wd
+     JOIN series s ON s.id = wd.series_id
+     JOIN users u ON u.id = s.author_id`
+  );
+  const days = Array.from({ length: 7 }, (_, i) => ({ day: i, series: [] }));
+  for (const r of rows) {
+    const d = Number(r.day);
+    if (d >= 0 && d <= 6) days[d].series.push(seriesRow(r, currentUser(req)));
+  }
+  res.json({ days });
+});
+
+// ---- discover: under-the-radar gems ----
+app.get("/api/discover", (req, res) => {
+  const avg = get("SELECT COALESCE(AVG(v7),0) a FROM (SELECT (SELECT COALESCE(SUM(n),0) FROM views v WHERE v.series_id=s.id AND v.day >= date('now','-7 days')) v7 FROM series s WHERE s.slug NOT LIKE 'test-%')").a;
+  const rows = all(
+    `${SERIES_SELECT}
+     WHERE s.slug NOT LIKE 'test-%'
+       AND (SELECT COUNT(*) FROM chapters ch WHERE ch.series_id=s.id AND ch.is_publish=1) >= 2
+       AND (SELECT COALESCE(SUM(n),0) FROM views v WHERE v.series_id=s.id AND v.day >= date('now','-7 days')) < ?
+     ORDER BY (SELECT COUNT(*) FROM likes l WHERE l.series_id=s.id)
+              + (SELECT COUNT(*) FROM follows f WHERE f.series_id=s.id) DESC
+     LIMIT 8`, avg
+  );
+  res.json({ series: rows.map((r) => seriesRow(r, currentUser(req))) });
 });
 
 app.get("/api/comments/latest", (req, res) => {

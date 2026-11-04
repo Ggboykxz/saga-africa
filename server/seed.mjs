@@ -184,5 +184,18 @@ for (let k = 0; k < seriesIds.length; k++) {
 }
 
 // demo accounts for the UI
+// demo notifications for creators (so the bell works out of the box)
+const note = (username, slug, text, read = 0) => {
+  const u = db.prepare("SELECT id FROM users WHERE username=?").get(username);
+  if (!u) return;
+  run("INSERT INTO notifications (user_id,series_slug,text,is_read,created_at) VALUES (?,?,?,?,?)",
+    u.id, slug, text, read, D - Math.floor(Math.random() * 5 * 86400));
+};
+note("luna-ink", "le-rubis-de-minuit", "lecteur3 a commenté votre série.");
+note("luna-ink", "le-rubis-de-minuit", "lecteur1 a commenté votre série.", 1);
+note("aurelie-matsuda", "ombremonde", "lecteur5 a commenté votre série.");
+note("noora-vega", "fragments-du-ciel", "lecteur2 a commenté votre série.", 1);
+note("aissata-diallo", "astres-du-sahel", "lecteur7 a commenté votre série.");
+
 console.log("Seeded:", seriesIds.length, "series,", db.prepare("SELECT COUNT(*) n FROM chapters").get().n, "chapters");
 console.log("Demo creators login: luna-ink / demo (etc — password 'demo' for all seed users)");

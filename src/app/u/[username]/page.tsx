@@ -24,8 +24,13 @@ export default function ProfilePage() {
   return (
     <div className="container section">
       <div className="row" style={{ gap: 20 }}>
-        <div style={{ width: 96, height: 96, borderRadius: "50%", background: "var(--grad-brand)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 38, fontWeight: 800, color: "#240a00" }}>
-          {user.username.slice(0, 1).toUpperCase()}
+        <div style={{ width: 96, height: 96, borderRadius: "50%", background: "var(--grad-brand)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 38, fontWeight: 800, color: "#240a00", overflow: "hidden", flexShrink: 0 }}>
+          {user.avatar && !String(user.avatar).startsWith("#") ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={user.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          ) : (
+            user.username.slice(0, 1).toUpperCase()
+          )}
         </div>
         <div className="grow">
           <h1 style={{ margin: 0 }}>{user.username}</h1>

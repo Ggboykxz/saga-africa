@@ -198,18 +198,52 @@ function SeriesPanel({ s, onChanged }: { s: Series; onChanged: () => void }) {
 
 export default function DashboardPage() {
   const { t } = useI18n();
+  const { push } = useToast();
   const [works, setWorks] = useState<Series[] | null>(null);
   const [activity, setActivity] = useState<Activity[]>([]);
-  const [me, setMe] = useState<{ username: string } | null>(null);
+  const [me, setMe] = useState<{ username: string; bio: string; avatar: string } | null>(null);
   const [reload, setReload] = useState(0);
+  const [bioDraft, setBioDraft] = useState("");
+  const [showProfile, setShowProfile] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    api.get<{ user: { username: string } | null }>("/api/auth/me").then((d) => setMe(d.user)).catch(() => {});
+    api.get<{ user: { username: string; bio: string; avatar: string } | null }>("/api/auth/me").then((d) => {
+      setMe(d.user);
+      setBioDraft(d.user?.bio || "");
+    }).catch(() => {});
     api.get<{ works: Series[]; recentActivity: Activity[] }>("/api/dashboard").then((d) => {
       setWorks(d.works);
       setActivity(d.recentActivity);
     }).catch(() => setWorks([]));
   }, [reload]);
+
+  const saveProfile = async () => {
+    setSaving(true);
+    try {
+      const d = await api.patch<{ user: { bio: string; avatar: string } }>("/api/auth/profile", { bio: bioDraft });
+      setMe((m) => (m ? { ...m, bio: d.user.bio } : m));
+      push(t("profile_saved"));
+      setShowProfile(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const onAvatarFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    try {
+      const url = await uploadImage(f);
+      const d = await api.patch<{ user: { avatar: string } }>("/api/auth/profile", { avatar: url });
+      setMe((m) => (m ? { ...m, avatar: d.user.avatar } : m));
+      push(t("toast_cover"));
+    } catch {
+      push(t("error_required"));
+    }
+  };
+
+  const profileIncomplete = me && (!me.bio.trim() || !me.avatar.trim() || me.avatar.startsWith("#"));
 
   if (works === null) return <p className="container section">…</p>;
 
@@ -235,6 +269,45 @@ export default function DashboardPage() {
         </div>
         <Link href="/publish" className="btn btn-primary">{t("dashboard_create")}</Link>
       </div>
+
+      {profileIncomplete && (
+        <div className="card" style={{ marginTop: 18, background: "linear-gradient(120deg, rgba(234,84,39,0.14), rgba(251,210,75,0.10))", borderColor: "rgba(234,84,39,0.35)" }}>
+          <div className="card-body">
+            {!showProfile ? (
+              <div className="row-between wrap">
+                <div>
+                  <strong>{t("profile_complete_title")}</strong>
+                  <p className="muted small" style={{ margin: "4px 0 0" }}>{t("profile_complete_sub")}</p>
+                </div>
+                <button className="btn btn-primary btn-sm" onClick={() => setShowProfile(true)}>{t("edit_profile")}</button>
+              </div>
+            ) : (
+              <div>
+                <div className="row" style={{ gap: 14, marginBottom: 12 }}>
+                  <div style={{ position: "relative", width: 64, height: 64, borderRadius: "50%", background: "var(--bg-soft)", border: "1px solid var(--line-strong)", overflow: "hidden", flexShrink: 0 }}>
+                    {me?.avatar && !me.avatar.startsWith("#") && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={me.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    )}
+                    <label style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(12,15,20,0.55)", color: "#fff", fontSize: 12, cursor: "pointer" }}>
+                      {t("profile_avatar_label")}
+                      <input type="file" accept="image/png,image/jpeg,image/webp" style={{ display: "none" }} onChange={onAvatarFile} />
+                    </label>
+                  </div>
+                  <div className="grow">
+                    <label className="label">{t("profile_bio_label")}</label>
+                    <textarea className="input" maxLength={400} value={bioDraft} onChange={(e) => setBioDraft(e.target.value)} />
+                  </div>
+                </div>
+                <div className="row" style={{ justifyContent: "flex-end" }}>
+                  <button className="btn btn-ghost btn-sm" onClick={() => setShowProfile(false)}>{t("cancel")}</button>
+                  <button className="btn btn-primary btn-sm" onClick={saveProfile} disabled={saving}>{saving ? "…" : t("save")}</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 14, margin: "24px 0" }}>
         {[

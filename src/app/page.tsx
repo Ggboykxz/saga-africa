@@ -26,6 +26,8 @@ export default function HomePage() {
   const [popular, setPopular] = useState<Series[]>([]);
   const [originals, setOriginals] = useState<Series[]>([]);
   const [fresh, setFresh] = useState<Series[]>([]);
+  const [discover, setDiscover] = useState<Series[]>([]);
+  const [weekly, setWeekly] = useState<{ day: number; series: Series[] }[]>([]);
   const [latestComments, setLatestComments] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
 
@@ -33,6 +35,8 @@ export default function HomePage() {
     api.get<{ series: Series[] }>("/api/leaderboard?tab=trending").then((d) => setTrending(d.series)).catch(() => {});
     api.get<{ series: Series[] }>("/api/leaderboard?tab=popular").then((d) => setPopular(d.series.slice(0, 6))).catch(() => {});
     api.get<{ series: Series[] }>("/api/series?origin=original&sort=new").then((d) => setOriginals(d.series.slice(0, 6))).catch(() => {});
+    api.get<{ series: Series[] }>("/api/discover").then((d) => setDiscover(d.series.slice(0, 6))).catch(() => {});
+    api.get<{ days: { day: number; series: Series[] }[] }>("/api/weekly").then((d) => setWeekly(d.days)).catch(() => {});
     api.get<{ series: Series[] }>("/api/series?sort=new").then((d) => setFresh(d.series.slice(0, 8))).catch(() => {});
     api.get<{ comments: any[] }>("/api/comments/latest").then((d) => setLatestComments(d.comments)).catch(() => {});
     api.get<{ series: number; chapters: number; users: number }>("/api/stats").then(setStats).catch(() => {});
@@ -121,6 +125,49 @@ export default function HomePage() {
               <span className="badge-original" style={{ position: "absolute", top: 10, left: 10 }}>Original</span>
               <div style={{ position: "absolute", bottom: 10, left: 12, right: 12, color: "#fff", fontWeight: 800, fontFamily: "var(--font-display)" }}>{s.title}</div>
             </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* DISCOVER */}
+      <section className="section container" style={{ paddingTop: 24 }}>
+        <SectionHead k="home_discover" sub="home_discover_sub" />
+        {discover.length === 0 ? (
+          <SkeletonGrid n={6} />
+        ) : (
+          <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 14 }}>
+            {discover.map((s, i) => (
+              <Link key={s.slug} href={`/series/${s.slug}`} className="card card-hover" style={{ display: "block", aspectRatio: "3/4", position: "relative", ...coverStyle(s, i) }}>
+                <span className="badge-canvas" style={{ position: "absolute", top: 10, left: 10, background: "rgba(12,15,20,0.7)", color: "#fff" }}>
+                  ✦ {s.stats.follows} {t("series_followers")}
+                </span>
+                <div style={{ position: "absolute", bottom: 10, left: 12, right: 12, color: "#fff", fontWeight: 800, fontFamily: "var(--font-display)" }}>{s.title}</div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* WEEKLY SCHEDULE */}
+      <section className="section container">
+        <SectionHead k="home_weekly_schedule" />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 12 }}>
+          {weekly.map((d) => (
+            <div key={d.day} className="card">
+              <div className="card-body" style={{ padding: "12px 14px" }}>
+                <div className="eyebrow" style={{ marginBottom: 8 }}>{t(`day_${d.day}`)}</div>
+                {d.series.length === 0 ? (
+                  <p className="tiny muted" style={{ margin: 0 }}>{t("weekly_empty")}</p>
+                ) : (
+                  d.series.map((s) => (
+                    <Link key={s.slug} href={`/series/${s.slug}`} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0", borderBottom: "1px solid var(--line)" }}>
+                      <span style={{ width: 26, height: 34, borderRadius: 5, flexShrink: 0, ...coverStyle(s, 0) }} />
+                      <span style={{ fontSize: 12.5, fontWeight: 700, lineHeight: 1.25 }}>{s.title}</span>
+                    </Link>
+                  ))
+                )}
+              </div>
+            </div>
           ))}
         </div>
       </section>

@@ -171,6 +171,28 @@ test("stats endpoint + search + leaderboard", async () => {
   assert.ok(lb.body.series.length >= 1);
 });
 
+test("profile patch, weekly schedule, discover", async () => {
+  await j("/api/auth/login", { method: "POST", body: JSON.stringify({ email: "t@x.test", password: "secret123" }) });
+  const patch = await j("/api/auth/profile", { method: "PATCH", body: JSON.stringify({ bio: "Je fabrique des mondes." }) });
+  assert.equal(patch.status, 200);
+  assert.equal(patch.body.user.bio, "Je fabrique des mondes.");
+  // fixture: a series with 2 chapters so weekly + discover can list it
+  const create = await j("/api/series", { method: "POST", body: JSON.stringify({
+    title: "Hebdo Série", titleEn: "Weekly Series", synopsis: "x", synopsisEn: "x", format: "webtoon",
+  }) });
+  const slug = create.body.series.slug;
+  await j(`/api/series/${slug}/chapters`, { method: "POST", body: JSON.stringify({ title: "Ch 1" }) });
+  await j(`/api/series/${slug}/chapters`, { method: "POST", body: JSON.stringify({ title: "Ch 2" }) });
+  const weekly = await j("/api/weekly");
+  assert.equal(weekly.status, 200);
+  assert.equal(weekly.body.days.length, 7);
+  const total = weekly.body.days.reduce((a, d) => a + d.series.length, 0);
+  assert.ok(total >= 1);
+  const disc = await j("/api/discover");
+  assert.equal(disc.status, 200);
+  assert.ok(Array.isArray(disc.body.series));
+});
+
 test("uploads require auth and reject non-images", async () => {
   const bad = await j("/api/upload", { method: "POST", body: JSON.stringify({ dataUrl: "data:text/plain;base64,AAAA" }) });
   assert.equal(bad.status, 400);
