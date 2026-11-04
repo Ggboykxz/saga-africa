@@ -1,0 +1,158 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useI18n } from "@/lib/i18n";
+import { api } from "@/lib/api";
+import { PageArt, type PageSpec } from "@/components/panels";
+import { Comments } from "@/components/Comments";
+
+type ReaderData = {
+  series: { slug: string; title: string; titleEn: string; format: string; coverColor: string; cover: string; author: { username: string; avatar: string } };
+  chapter: { id: number; number: number; title: string; titleEn: string; pages: number; key: string };
+  pages: PageSpec[];
+  nav: { next: number | null; prev: number | null };
+};
+
+export default function ReaderPage() {
+  const { slug, chapter } = useParams() as { slug: string; chapter: string };
+  const { t, lang } = useI18n();
+  const [data, setData] = useState<ReaderData | null>(null);
+  const [hint, setHint] = useState(true);
+  const [pageIdx, setPageIdx] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const pageRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setData(null);
+    setPageIdx(0);
+    api.get<ReaderData>(`/api/reader/${slug}/${chapter}`).then(setData).catch(() => {});
+  }, [slug, chapter]);
+
+  useEffect(() => {
+    const el = pageRef.current;
+    if (!el || !data || data.series.format === "manga") return;
+    const onScroll = () => {
+      const max = el.scrollHeight - el.clientHeight;
+      setProgress(max > 0 ? Math.round((el.scrollTop / max) * 100) : 0);
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [data]);
+
+  const go = useCallback((dir: 1 | -1) => {
+    setPageIdx((i) => Math.max(0, Math.min((data?.pages.length || 1) - 1, i + dir)));
+  }, [data]);
+
+  useEffect(() => {
+    if (!data || data.series.format !== "manga") return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") go(1);      // RTL: gauche = suite
+      if (e.key === "ArrowRight") go(-1);    // RTL: droite = retour
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [data, go]);
+
+  if (!data) return <p className="container section">…</p>;
+
+  const title = lang === "fr" ? data.chapter.title : data.chapter.titleEn;
+  const seriesTitle = lang === "fr" ? data.series.title : data.series.titleEn;
+  const isManga = data.series.format === "manga";
+  const pageCount = data.pages.length;
+
+  return (
+    <>
+      {/* top bar */}
+      <div style={{ position: "sticky", top: 60, zIndex: 40, background: "rgba(12,15,20,0.92)", backdropFilter: "blur(10px)", borderBottom: "1px solid var(--line)" }}>
+        <div className="container row-between" style={{ height: 52 }}>
+          <Link href={`/series/${data.series.slug}`} className="row" style={{ gap: 8, fontSize: 14, fontWeight: 700 }}>
+            <span style={{ width: 30, height: 30, borderRadius: 8, background: "var(--bg-soft)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>◀</span>
+            <span style={{ maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{seriesTitle}</span>
+            <span className="muted" style={{ fontWeight: 400 }}>· #{data.chapter.number} {title}</span>
+          </Link>
+          <div className="row" style={{ gap: 8 }}>
+            {data.nav.prev && (
+              <Link href={`/reader/${slug}/${data.nav.prev}`} className="btn btn-sm btn-ghost">{t("reader_first")}</Link>
+            )}
+            {data.nav.next && (
+              <Link href={`/reader/${slug}/${data.nav.next}`} className="btn btn-sm btn-primary">{t("reader_last")}</Link>
+            )}
+          </div>
+        </div>
+        {!isManga && (
+          <div style={{ height: 3, background: "var(--bg-soft)" }}>
+            <div style={{ height: "100%", width: `${progress}%`, background: "var(--grad-brand)", transition: "width 0.1s" }} />
+          </div>
+        )}
+      </div>
+
+      {/* direction hint */}
+      {isManga && hint && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(8,10,14,0.85)", zIndex: 80, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div className="card" style={{ maxWidth: 440, width: "100%", padding: 28, textAlign: "center" }}>
+            <div style={{ fontSize: 38 }}>📖</div>
+            <h3 className="title-md">Sens japonais</h3>
+            <p className="muted">{t("reader_direction")}</p>
+            <p className="muted small">{t("reader_swipe")}</p>
+            <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => setHint(false)}>{t("warning_continue")}</button>
+          </div>
+        </div>
+      )}
+
+      {isManga ? (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "24px 0 60px" }}>
+          <div style={{ position: "relative", overflow: "hidden", borderRadius: "var(--r-lg)", boxShadow: "var(--shadow-3)", border: "1px solid var(--line)" }}>
+            <div style={{ display: "flex", transform: `translateX(${-pageIdx * 100}%)`, transition: "transform 0.3s ease" }}>
+              {data.pages.map((p, i) => (
+                <div key={i} style={{ minWidth: "100%" }}>
+                  <PageArt page={p} width={720} />
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => go(-1)}
+              aria-label={t("reader_prev")}
+              style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "18%", background: "transparent", border: 0, color: "rgba(255,255,255,0.5)", fontSize: 40, opacity: pageIdx === 0 ? 0.2 : 1 }}
+            >
+              ›
+            </button>
+            <button
+              onClick={() => go(1)}
+              aria-label={t("reader_next")}
+              style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "18%", background: "transparent", border: 0, color: "rgba(255,255,255,0.5)", fontSize: 40, opacity: pageIdx === pageCount - 1 ? 0.2 : 1 }}
+            >
+              ‹
+            </button>
+          </div>
+          <div className="tiny muted" style={{ marginTop: 14 }}>{pageIdx + 1} / {pageCount}</div>
+        </div>
+      ) : (
+        <div ref={pageRef} style={{ overflowY: "auto", display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 0" }}>
+          {data.pages.map((p, i) => (
+            <div key={i} style={{ marginBottom: 14, borderRadius: 8, overflow: "hidden", boxShadow: "var(--shadow-2)" }}>
+              <PageArt page={p} width={720} />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* end of chapter */}
+      <div className="container" style={{ paddingTop: 40, maxWidth: 760 }}>
+        <div className="card" style={{ textAlign: "center", padding: "36px 24px" }}>
+          <div style={{ fontSize: 40 }}>🎉</div>
+          <h3 className="title-md">{t("reader_end")}</h3>
+          <p className="muted">{t("reader_end_sub")}</p>
+          <div className="row wrap" style={{ justifyContent: "center", marginTop: 14 }}>
+            <Link href={`/series/${data.series.slug}`} className="btn btn-ghost">{t("reader_back")}</Link>
+            {data.nav.next && <Link href={`/reader/${slug}/${data.nav.next}`} className="btn btn-primary">{t("reader_last")}</Link>}
+          </div>
+        </div>
+        <div style={{ marginTop: 28 }}>
+          <Comments slug={data.series.slug} chapterId={data.chapter.id} />
+        </div>
+      </div>
+    </>
+  );
+}
