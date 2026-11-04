@@ -102,7 +102,7 @@ export default function ReaderPage() {
   return (
     <>
       {/* top bar */}
-      <div style={{ position: "sticky", top: 60, zIndex: 40, background: "rgba(12,15,20,0.92)", backdropFilter: "blur(10px)", borderBottom: "1px solid var(--line)" }}>
+      <div style={{ position: "sticky", top: 60, zIndex: 40, background: "var(--glass-strong)", backdropFilter: "blur(10px)", borderBottom: "1px solid var(--line)" }}>
         <div className="container row-between" style={{ height: 52, gap: 8 }}>
           <Link href={`/series/${data.series.slug}`} className="row" style={{ gap: 8, fontSize: 14, fontWeight: 700, minWidth: 0 }}>
             <span style={{ width: 30, height: 30, borderRadius: 8, background: "var(--bg-soft)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><ArrowLeft size={16} /></span>
