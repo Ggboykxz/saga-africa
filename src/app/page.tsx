@@ -232,12 +232,12 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* WEEKLY SCHEDULE */}
+      {/* WEEKLY SCHEDULE — horizontal strip */}
       <section className="section container">
         <SectionHead k="home_weekly_schedule" />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 12 }}>
+        <Carousel label="Hebdo">
           {weekly.map((d) => (
-            <div key={d.day} className="card">
+            <div key={d.day} className="card" style={{ flex: "0 0 160px", scrollSnapAlign: "start" }}>
               <div className="card-body" style={{ padding: "12px 14px" }}>
                 <div className="eyebrow" style={{ marginBottom: 8 }}>{t(`day_${d.day}`)}</div>
                 {d.series.length === 0 ? (
@@ -253,7 +253,7 @@ export default function HomePage() {
               </div>
             </div>
           ))}
-        </div>
+        </Carousel>
       </section>
 
       {/* GENRES */}

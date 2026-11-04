@@ -18,9 +18,12 @@ export function Carousel({ children, label }: { children: ReactNode; label?: str
         ref={ref}
         style={{
           display: "flex",
+          flexWrap: "nowrap",
           gap: 14,
           overflowX: "auto",
+          overflowY: "hidden",
           scrollSnapType: "x mandatory",
+          WebkitOverflowScrolling: "touch",
           paddingBottom: 8,
           scrollbarWidth: "none",
           msOverflowStyle: "none",

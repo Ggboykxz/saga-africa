@@ -77,8 +77,10 @@
 .hero .muted { color: rgba(255, 255, 255, 0.72); }
 .hero .btn-ghost { border-color: rgba(255, 255, 255, 0.35); }
 
-/* carousel: hide scrollbar */
+/* carousel: hide scrollbar + force single horizontal row */
+.carousel { -webkit-overflow-scrolling: touch; }
 .carousel::-webkit-scrollbar { display: none; }
+.carousel > * { flex-shrink: 0; }
 
 /* title outline style (inspiré du rendu Mangadraft sur fonds/visuels) */
 .text-outline {
