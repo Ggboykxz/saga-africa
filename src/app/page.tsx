@@ -94,7 +94,7 @@ export default function HomePage() {
                 ))}
                 {banner.origin === "original" && <span className="badge-original">Original</span>}
               </div>
-              <h1 style={{ fontSize: "clamp(32px, 5vw, 56px)", fontWeight: 800, margin: 0 }}>{banner.title}</h1>
+              <h1 className="text-outline" style={{ fontSize: "clamp(32px, 5vw, 56px)", fontWeight: 800, margin: 0 }}>{banner.title}</h1>
               <div className="row" style={{ gap: 10, marginTop: 12, color: "rgba(255,255,255,0.85)" }}>
                 <span className="row" style={{ gap: 6 }}><Users size={16} /> {banner.author.username}</span>
                 <span className="row" style={{ gap: 6 }}><Eye size={16} /> {nFmt(banner.stats.views7)} /7j</span>

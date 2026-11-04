@@ -100,11 +100,21 @@ export default function SeriesPage() {
               <span className="pill">{s.formatLabel}</span>
               {s.genres.map((g) => <span key={g} className="pill">{g}</span>)}
             </div>
-            <h1 style={{ margin: 0, fontSize: "clamp(26px, 4vw, 40px)" }}>{title}</h1>
+            <h1 style={{ margin: 0, fontSize: "clamp(26px, 4vw, 40px)", fontWeight: 800 }}>
+              {title}
+              <span className="muted" style={{ fontSize: "0.45em", fontWeight: 600, marginLeft: 8 }}>
+                · {s.formatLabel.toLowerCase()} {s.origin === "original" ? "original" : "scan"}
+              </span>
+            </h1>
             <div className="row wrap" style={{ marginTop: 8, gap: 14, color: "var(--fg-muted)", fontSize: 14 }}>
               <Link href={`/u/${s.author.username}`} className="row" style={{ gap: 8 }}>
-                <span style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--bg-soft)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}>
-                  {s.author.username.slice(0, 1).toUpperCase()}
+                <span style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--bg-soft)", border: "1px solid var(--line-strong)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 700, overflow: "hidden" }}>
+                  {s.author.avatar && !s.author.avatar.startsWith("#") ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={s.author.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  ) : (
+                    s.author.username.slice(0, 1).toUpperCase()
+                  )}
                 </span>
                 <span style={{ fontWeight: 700, color: "var(--fg)" }}>{s.author.username}</span>
               </Link>
