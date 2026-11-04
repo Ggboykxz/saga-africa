@@ -77,6 +77,9 @@
 .hero .muted { color: rgba(255, 255, 255, 0.72); }
 .hero .btn-ghost { border-color: rgba(255, 255, 255, 0.35); }
 
+/* carousel: hide scrollbar */
+.carousel::-webkit-scrollbar { display: none; }
+
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 body {

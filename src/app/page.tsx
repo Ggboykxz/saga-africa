@@ -8,7 +8,8 @@ import type { Series } from "@/lib/api";
 import { SeriesCard } from "@/components/SeriesCard";
 import { SkeletonGrid } from "@/components/Skeleton";
 import { nFmt, timeAgo, coverStyle } from "@/lib/format";
-import { Eye, Sparkles } from "@/components/icons";
+import { Eye, Sparkles, Play, ChevronLeft, ChevronRight, Users } from "@/components/icons";
+import { Carousel } from "@/components/Carousel";
 
 function SectionHead({ k, sub }: { k: string; sub?: string }) {
   const { t } = useI18n();
@@ -45,39 +46,117 @@ export default function HomePage() {
 
   const genres = ["Action", "Aventure", "Romance", "Drame", "Fantastique", "Thriller", "Comédie", "Horreur", "Science-fiction", "Jeunesse"];
 
+  // --- Mangadraft-style banner carousel hero ---
+  const banners = trending.slice(0, 5);
+  const [bannerIdx, setBannerIdx] = useState(0);
+  const [bannerPaused, setBannerPaused] = useState(false);
+
+  useEffect(() => {
+    if (banners.length <= 1 || bannerPaused) return;
+    const iv = setInterval(() => setBannerIdx((i) => (i + 1) % banners.length), 5000);
+    return () => clearInterval(iv);
+  }, [banners.length, bannerPaused]);
+
+  const banner = banners[bannerIdx % Math.max(1, banners.length)];
+
   return (
     <>
-      {/* HERO */}
-      <section style={{ background: "var(--grad-night)", overflow: "hidden", position: "relative" }}>
-        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(60% 80% at 80% 10%, rgba(234,84,39,0.28) 0%, transparent 60%), radial-gradient(50% 60% at 10% 90%, rgba(0,220,100,0.16) 0%, transparent 55%)" }} />
-        <div className="container" style={{ position: "relative", padding: "76px 20px 64px", maxWidth: 1080, textAlign: "center" }}>
-          <div className="row" style={{ justifyContent: "center", gap: 8, marginBottom: 16 }}>
-            <span className="pill pill-brand">Manga · Webtoon · Nolovel · Light novel</span>
-            <span className="pill pill-electron">Gratuit</span>
+      {/* HERO — banner carousel */}
+      <section
+        className="hero"
+        style={{ minHeight: 460, display: "flex", flexDirection: "column", justifyContent: "flex-end", position: "relative", overflow: "hidden" }}
+        onMouseEnter={() => setBannerPaused(true)}
+        onMouseLeave={() => setBannerPaused(false)}
+      >
+        {banners.map((s, i) => (
+          <div
+            key={s.slug}
+            style={{
+              position: "absolute",
+              inset: 0,
+              ...coverStyle(s, i),
+              opacity: i === bannerIdx ? 1 : 0,
+              transition: "opacity 0.6s ease",
+              pointerEvents: i === bannerIdx ? "auto" : "none",
+            }}
+          >
+            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(10,12,16,0.35) 0%, rgba(10,12,16,0.55) 45%, var(--bg) 100%)" }} />
           </div>
-          <h1 className="title-xl" style={{ fontWeight: 800 }}>{t("home_hero_title")}</h1>
-          <p className="muted" style={{ fontSize: 18, maxWidth: 640, margin: "0 auto 28px" }}>{t("home_hero_sub")}</p>
-          <div className="row wrap" style={{ justifyContent: "center", gap: 12 }}>
-            <Link href="/catalog" className="btn btn-primary btn-lg">{t("home_hero_cta")}</Link>
-            <Link href="/publish" className="btn btn-ghost btn-lg">{t("home_hero_cta2")}</Link>
+        ))}
+
+        {banner && (
+          <div className="container" style={{ position: "relative", padding: "150px 20px 40px" }}>
+            <div style={{ maxWidth: 640 }}>
+              <div className="row wrap" style={{ gap: 8, marginBottom: 12 }}>
+                <span className="pill pill-brand">{banner.formatLabel}</span>
+                {banner.genres.slice(0, 2).map((g) => (
+                  <span key={g} className="pill" style={{ background: "rgba(255,255,255,0.14)", color: "#fff", borderColor: "rgba(255,255,255,0.28)" }}>{g}</span>
+                ))}
+                {banner.origin === "original" && <span className="badge-original">Original</span>}
+              </div>
+              <h1 style={{ fontSize: "clamp(32px, 5vw, 56px)", fontWeight: 800, margin: 0 }}>{banner.title}</h1>
+              <div className="row" style={{ gap: 10, marginTop: 12, color: "rgba(255,255,255,0.85)" }}>
+                <span className="row" style={{ gap: 6 }}><Users size={16} /> {banner.author.username}</span>
+                <span className="row" style={{ gap: 6 }}><Eye size={16} /> {nFmt(banner.stats.views7)} /7j</span>
+              </div>
+              <div className="row wrap" style={{ gap: 12, marginTop: 22 }}>
+                <Link href={`/series/${banner.slug}`} className="btn btn-primary btn-lg"><Play size={18} filled /> {t("read_now")}</Link>
+                <Link href="/catalog" className="btn btn-ghost btn-lg">{t("home_hero_cta")}</Link>
+              </div>
+            </div>
           </div>
-          {stats && (
-            <div className="row wrap" style={{ justifyContent: "center", gap: 28, marginTop: 40 }}>
-              {[
-                [stats.series, "séries"],
-                [stats.chapters, "chapitres"],
-                [stats.users, "créateurs & lecteurs"],
-                [stats.comments, "commentaires"],
-              ].map(([n, label]) => (
-                <div key={label as string}>
-                  <div style={{ fontSize: 28, fontWeight: 800, fontFamily: "var(--font-display)" }}>{nFmt(n as number)}</div>
-                  <div className="tiny muted">{label}</div>
-                </div>
+        )}
+
+        {/* arrows + dots */}
+        {banners.length > 1 && (
+          <>
+            <button
+              className="btn btn-sm btn-ghost btn-icon"
+              style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", background: "rgba(12,15,20,0.5)", color: "#fff" }}
+              onClick={() => setBannerIdx((i) => (i - 1 + banners.length) % banners.length)}
+              aria-label="Précédent"
+            >
+              <ChevronLeft size={22} />
+            </button>
+            <button
+              className="btn btn-sm btn-ghost btn-icon"
+              style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", background: "rgba(12,15,20,0.5)", color: "#fff" }}
+              onClick={() => setBannerIdx((i) => (i + 1) % banners.length)}
+              aria-label="Suivant"
+            >
+              <ChevronRight size={22} />
+            </button>
+            <div className="row" style={{ position: "absolute", bottom: 18, left: "50%", transform: "translateX(-50%)", gap: 8 }}>
+              {banners.map((s, i) => (
+                <button
+                  key={s.slug}
+                  onClick={() => setBannerIdx(i)}
+                  aria-label={`Bannière ${i + 1}`}
+                  style={{ width: i === bannerIdx ? 24 : 8, height: 8, borderRadius: 999, border: 0, background: i === bannerIdx ? "var(--brand)" : "rgba(255,255,255,0.35)", transition: "width 0.3s ease", cursor: "pointer" }}
+                />
               ))}
             </div>
-          )}
-        </div>
+          </>
+        )}
       </section>
+
+      {stats && (
+        <div className="container" style={{ padding: "28px 20px 0", textAlign: "center" }}>
+          <div className="row wrap" style={{ justifyContent: "center", gap: 30 }}>
+            {[
+              [stats.series, "séries"],
+              [stats.chapters, "chapitres"],
+              [stats.users, "créateurs & lecteurs"],
+              [stats.comments, "commentaires"],
+            ].map(([n, label]) => (
+              <div key={label as string}>
+                <div style={{ fontSize: 24, fontWeight: 800, fontFamily: "var(--font-display)" }}>{nFmt(n as number)}</div>
+                <div className="tiny muted">{label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* TRENDING */}
       <section className="section-tight container">
@@ -85,16 +164,16 @@ export default function HomePage() {
         {trending.length === 0 ? (
           <SkeletonGrid n={8} />
         ) : (
-          <div className="grid grid-cards">
-            {trending.slice(0, 8).map((s, i) => (
-              <div key={s.slug} style={{ position: "relative" }}>
-                <span style={{ position: "absolute", top: -8, left: -6, zIndex: 2, width: 34, height: 34, borderRadius: "50%", background: i < 3 ? "var(--grad-brand)" : "var(--bg-soft)", color: i < 3 ? "#240a00" : "var(--fg-muted)", fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 15, display: "inline-flex", alignItems: "center", justifyContent: "center", border: "2px solid var(--bg)" }}>
+          <Carousel label="Tendances">
+            {trending.slice(0, 10).map((s, i) => (
+              <div key={s.slug} style={{ flex: "0 0 190px", scrollSnapAlign: "start", position: "relative" }}>
+                <span style={{ position: "absolute", top: 8, left: 8, zIndex: 2, width: 32, height: 32, borderRadius: "50%", background: i < 3 ? "var(--grad-brand)" : "var(--bg-soft)", color: i < 3 ? "#240a00" : "var(--fg-muted)", fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 14, display: "inline-flex", alignItems: "center", justifyContent: "center", border: "2px solid var(--bg)" }}>
                   {i + 1}
                 </span>
                 <SeriesCard s={s} seed={i} />
               </div>
             ))}
-          </div>
+          </Carousel>
         )}
       </section>
 
@@ -104,30 +183,34 @@ export default function HomePage() {
         {popular.length === 0 ? (
           <SkeletonGrid n={6} />
         ) : (
-          <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 14 }}>
+          <Carousel label="Populaires">
             {popular.map((s, i) => (
-              <Link key={s.slug} href={`/series/${s.slug}`} className="card card-hover" style={{ display: "block", aspectRatio: "3/4", position: "relative", ...coverStyle(s, i) }}>
+              <Link key={s.slug} href={`/series/${s.slug}`} className="card card-hover" style={{ display: "block", aspectRatio: "3/4", position: "relative", flex: "0 0 170px", scrollSnapAlign: "start", ...coverStyle(s, i) }}>
                 <span className="badge-canvas" style={{ position: "absolute", top: 10, left: 10, background: "rgba(12,15,20,0.7)", color: "#fff", display: "inline-flex", alignItems: "center", gap: 5 }}>
                   <Eye size={13} /> {nFmt(s.stats.views)}
                 </span>
                 <div style={{ position: "absolute", bottom: 10, left: 12, right: 12, color: "#fff", fontWeight: 800, fontFamily: "var(--font-display)" }}>{s.title}</div>
               </Link>
             ))}
-          </div>
+          </Carousel>
         )}
       </section>
 
       {/* ORIGINALS */}
       <section className="section container" style={{ paddingTop: 24 }}>
         <SectionHead k="home_originals" sub="home_originals_sub" />
-        <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 14 }}>
-          {originals.map((s, i) => (
-            <Link key={s.slug} href={`/series/${s.slug}`} className="card card-hover" style={{ display: "block", aspectRatio: "3/4", position: "relative", ...coverStyle(s, i) }}>
-              <span className="badge-original" style={{ position: "absolute", top: 10, left: 10 }}>Original</span>
-              <div style={{ position: "absolute", bottom: 10, left: 12, right: 12, color: "#fff", fontWeight: 800, fontFamily: "var(--font-display)" }}>{s.title}</div>
-            </Link>
-          ))}
-        </div>
+        {originals.length === 0 ? (
+          <SkeletonGrid n={6} />
+        ) : (
+          <Carousel label="Originals">
+            {originals.map((s, i) => (
+              <Link key={s.slug} href={`/series/${s.slug}`} className="card card-hover" style={{ display: "block", aspectRatio: "3/4", position: "relative", flex: "0 0 170px", scrollSnapAlign: "start", ...coverStyle(s, i) }}>
+                <span className="badge-original" style={{ position: "absolute", top: 10, left: 10 }}>Original</span>
+                <div style={{ position: "absolute", bottom: 10, left: 12, right: 12, color: "#fff", fontWeight: 800, fontFamily: "var(--font-display)" }}>{s.title}</div>
+              </Link>
+            ))}
+          </Carousel>
+        )}
       </section>
 
       {/* DISCOVER */}
@@ -136,16 +219,16 @@ export default function HomePage() {
         {discover.length === 0 ? (
           <SkeletonGrid n={6} />
         ) : (
-          <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 14 }}>
+          <Carousel label="Découverte">
             {discover.map((s, i) => (
-              <Link key={s.slug} href={`/series/${s.slug}`} className="card card-hover" style={{ display: "block", aspectRatio: "3/4", position: "relative", ...coverStyle(s, i) }}>
+              <Link key={s.slug} href={`/series/${s.slug}`} className="card card-hover" style={{ display: "block", aspectRatio: "3/4", position: "relative", flex: "0 0 170px", scrollSnapAlign: "start", ...coverStyle(s, i) }}>
                 <span className="badge-canvas" style={{ position: "absolute", top: 10, left: 10, background: "rgba(12,15,20,0.7)", color: "#fff", display: "inline-flex", alignItems: "center", gap: 5 }}>
                   <Sparkles size={13} /> {s.stats.follows} {t("series_followers")}
                 </span>
                 <div style={{ position: "absolute", bottom: 10, left: 12, right: 12, color: "#fff", fontWeight: 800, fontFamily: "var(--font-display)" }}>{s.title}</div>
               </Link>
             ))}
-          </div>
+          </Carousel>
         )}
       </section>
 
@@ -189,9 +272,13 @@ export default function HomePage() {
         {fresh.length === 0 ? (
           <SkeletonGrid n={8} />
         ) : (
-          <div className="grid grid-cards">
-            {fresh.map((s, i) => <SeriesCard key={s.slug} s={s} seed={i + 3} />)}
-          </div>
+          <Carousel label="Nouveautés">
+            {fresh.map((s, i) => (
+              <div key={s.slug} style={{ flex: "0 0 190px", scrollSnapAlign: "start" }}>
+                <SeriesCard s={s} seed={i + 3} />
+              </div>
+            ))}
+          </Carousel>
         )}
       </section>
 
