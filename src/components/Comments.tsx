@@ -76,6 +76,11 @@ export function Comments({ slug, chapterId }: { slug: string; chapterId?: number
             </div>
           </div>
           <p style={{ margin: "0 0 8px", fontSize: 14.5 }}>{c.body}</p>
+          {c.chapter_number != null && (
+            <div className="tiny muted" style={{ marginBottom: 8 }}>
+              <span className="pill" style={{ padding: "2px 8px" }}>Chapitre #{c.chapter_number}</span>
+            </div>
+          )}
           <div className="row" style={{ gap: 12 }}>
             <button className="btn btn-sm btn-ghost" onClick={() => like(c.id)}><Heart size={15} /> {c.likes}</button>
             <button className="btn btn-sm btn-ghost" onClick={() => setReplyTo(replyTo === c.id ? null : c.id)}>{t("comments_reply")}</button>

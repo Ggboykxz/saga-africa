@@ -476,12 +476,18 @@ app.get("/api/series/:slug/comments", (req, res) => {
   const row = get("SELECT id FROM series WHERE slug=?", req.params.slug);
   if (!row) return res.status(404).json({ error: "not_found" });
   const rows = all(
-    `SELECT c.*, u.username, u.avatar FROM comments c JOIN users u ON u.id=c.user_id
+    `SELECT c.*, u.username, u.avatar, ch.title AS chapter_title, ch.number AS chapter_number
+     FROM comments c
+     JOIN users u ON u.id=c.user_id
+     LEFT JOIN chapters ch ON ch.id = c.chapter_id
      WHERE c.series_id=? AND c.parent_id IS NULL ORDER BY c.likes DESC, c.created_at DESC LIMIT 80`, row.id
   );
   const list = rows.map((c) => {
     const replies = all(
-      `SELECT c.*, u.username, u.avatar FROM comments c JOIN users u ON u.id=c.user_id
+      `SELECT c.*, u.username, u.avatar, ch.title AS chapter_title, ch.number AS chapter_number
+       FROM comments c
+       JOIN users u ON u.id=c.user_id
+       LEFT JOIN chapters ch ON ch.id = c.chapter_id
        WHERE c.parent_id=? ORDER BY c.created_at LIMIT 12`, c.id
     );
     return { ...c, replies };

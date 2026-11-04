@@ -7,7 +7,8 @@ import { api, type Series, type Chapter } from "@/lib/api";
 import { useToast } from "@/lib/toast";
 import { uploadImage } from "@/lib/upload";
 import { nFmt, timeAgo, coverStyle } from "@/lib/format";
-import { Eye, Heart, Bell, Plus, Pencil, Trash, Sparkles, Upload } from "@/components/icons";
+import { getProgress } from "@/lib/progress";
+import { Eye, Heart, Bell, Plus, Pencil, Trash, Sparkles, Upload, Play } from "@/components/icons";
 
 type Activity = { kind: string; title: string; slug: string; s_title: string; at: number };
 type Stats = { daily: { day: string; views: number }[]; totals: Record<string, number> };
@@ -44,6 +45,7 @@ function SeriesPanel({ s, onChanged }: { s: Series; onChanged: () => void }) {
   });
   const [coverUrl, setCoverUrl] = useState(s.cover);
   const [busy, setBusy] = useState(false);
+  const prog = getProgress(s.slug);
 
   const load = () => {
     api.get<Stats>(`/api/series/${s.slug}/stats`).then(setStats).catch(() => {});
@@ -119,6 +121,11 @@ function SeriesPanel({ s, onChanged }: { s: Series; onChanged: () => void }) {
                 <Sparkline daily={stats.daily} />
                 <div className="tiny muted">14 j — {t("dashboard_stats_views")}</div>
               </div>
+            )}
+            {prog && (
+              <Link href={`/reader/${s.slug}/${prog.number}`} className="btn btn-primary btn-sm" style={{ marginTop: 8 }}>
+                <Play size={14} filled /> {t("library_resume")} #{prog.number}
+              </Link>
             )}
           </div>
           <div className="row" style={{ flexDirection: "column", alignItems: "flex-end", gap: 6 }}>

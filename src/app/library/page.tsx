@@ -12,6 +12,8 @@ export default function LibraryPage() {
   const { t } = useI18n();
   const [me, setMe] = useState<{ username: string } | null>(null);
   const [series, setSeries] = useState<Series[] | null>(null);
+  const [format, setFormat] = useState("");
+  const [status, setStatus] = useState("");
 
   useEffect(() => {
     api.get<{ user: { username: string } | null }>("/api/auth/me").then((d) => setMe(d.user)).catch(() => {});
@@ -29,19 +31,38 @@ export default function LibraryPage() {
     );
   }
 
+  const formats = ["", "manga", "webtoon", "nolovel", "lightnovel", "artbook"];
+  const statuses = ["", "ongoing", "hiatus", "completed"];
+  const filtered = series.filter((s) => (!format || s.format === format) && (!status || s.status === status));
+
   return (
     <div className="container section">
       <h1 className="title-lg">{t("library_title")}</h1>
       <p className="muted" style={{ marginTop: -8 }}>{t("library_sub")}</p>
 
-      {series.length === 0 ? (
+      <div className="row wrap" style={{ margin: "18px 0 4px", gap: 8 }}>
+        {formats.map((f) => (
+          <button key={f || "all"} className={`pill ${format === f ? "pill-active" : ""}`} onClick={() => setFormat(f)}>
+            {f ? t(`format_${f}`) : t("catalog_all")}
+          </button>
+        ))}
+      </div>
+      <div className="row wrap" style={{ marginBottom: 12, gap: 8 }}>
+        {statuses.map((st) => (
+          <button key={st || "all"} className={`pill ${status === st ? "pill-active" : ""}`} onClick={() => setStatus(st)}>
+            {st ? t(`status_${st}`) : t("catalog_all")}
+          </button>
+        ))}
+      </div>
+
+      {filtered.length === 0 ? (
         <div className="card" style={{ padding: 48, textAlign: "center", marginTop: 24 }}>
           <p className="muted">{t("library_empty")}</p>
           <Link href="/catalog" className="btn btn-primary" style={{ marginTop: 8 }}>{t("home_hero_cta")}</Link>
         </div>
       ) : (
         <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16, marginTop: 24 }}>
-          {series.map((s, i) => {
+          {filtered.map((s, i) => {
             const prog = getProgress(s.slug);
             const resumeChapter = prog && s.stats.chapters >= 1 ? prog.number : null;
             return (

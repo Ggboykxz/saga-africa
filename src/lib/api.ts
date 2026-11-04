@@ -42,6 +42,8 @@ export type Comment = {
   id: number;
   series_id: number;
   chapter_id: number | null;
+  chapter_title?: string | null;
+  chapter_number?: number | null;
   user_id: number;
   parent_id: number | null;
   body: string;
