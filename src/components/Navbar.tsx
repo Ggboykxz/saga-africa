@@ -38,6 +38,32 @@ export function Navbar() {
   const [unread, setUnread] = useState(0);
   const [bellOpen, setBellOpen] = useState(false);
   const bellRef = useRef<HTMLDivElement>(null);
+  const [sugg, setSugg] = useState<{ series: Array<{ slug: string; title: string; formatLabel: string }>; users: Array<{ username: string }> }>({ series: [], users: [] });
+  const [suggOpen, setSuggOpen] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const term = q.trim();
+      if (term.length >= 2) {
+        api.get(`/api/search?q=${encodeURIComponent(term)}`).then((d: any) => {
+          setSugg({ series: d.series.slice(0, 5), users: d.users.slice(0, 3) });
+          setSuggOpen(true);
+        }).catch(() => {});
+      } else {
+        setSuggOpen(false);
+      }
+    }, 250);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) setSuggOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
 
   useEffect(() => {
     api.get<{ user: Me }>("/api/auth/me").then((d) => setMe(d.user)).catch(() => {});
@@ -94,6 +120,7 @@ export function Navbar() {
 
   const authArea = me ? (
     <>
+      <Link href="/library" className="btn btn-sm btn-ghost">{t("nav_library")}</Link>
       <Link href="/dashboard" className="btn btn-sm btn-ghost">{t("nav_dashboard")}</Link>
       <button className="btn btn-sm btn-ghost btn-icon" onClick={logout} title={t("nav_logout")} aria-label={t("nav_logout")}>
         <LogOut size={16} />
@@ -117,9 +144,26 @@ export function Navbar() {
             <nav className="row nav-links" style={{ gap: 4, marginLeft: 8 }}>{navLinks}</nav>
           </div>
 
-          <form className="row grow nav-search" style={{ maxWidth: 340, margin: "0 12px" }} onSubmit={submitSearch}>
-            <input className="input" style={{ borderRadius: 999, paddingLeft: 16 }} placeholder={t("search_ph")} value={q} onChange={(e) => setQ(e.target.value)} />
-          </form>
+          <div ref={searchRef} style={{ position: "relative", display: "flex", flex: 1, maxWidth: 340, margin: "0 12px", minWidth: 0 }}>
+            <form className="row grow nav-search" style={{ width: "100%" }} onSubmit={submitSearch}>
+              <input className="input" style={{ borderRadius: 999, paddingLeft: 16 }} placeholder={t("search_ph")} value={q} onChange={(e) => setQ(e.target.value)} />
+            </form>
+            {suggOpen && q.trim().length >= 2 && (
+              <div style={{ position: "absolute", top: 44, left: 0, right: 0, background: "var(--bg-elev)", border: "1px solid var(--line-strong)", borderRadius: "var(--r-lg)", boxShadow: "var(--shadow-3)", zIndex: 60, overflow: "hidden", maxHeight: 320, overflowY: "auto" }}>
+                {sugg.series.length === 0 && sugg.users.length === 0 && <p className="small muted" style={{ padding: 14 }}>…</p>}
+                {sugg.series.map((s) => (
+                  <Link key={s.slug} href={`/series/${s.slug}`} onClick={() => setSuggOpen(false)} style={{ display: "block", padding: "9px 14px", borderBottom: "1px solid var(--line)", fontSize: 14 }}>
+                    <span style={{ fontWeight: 700 }}>{s.title}</span> <span className="pill" style={{ padding: "2px 8px", marginLeft: 8 }}>{s.formatLabel}</span>
+                  </Link>
+                ))}
+                {sugg.users.map((u) => (
+                  <Link key={u.username} href={`/u/${u.username}`} onClick={() => setSuggOpen(false)} style={{ display: "block", padding: "9px 14px", borderBottom: "1px solid var(--line)", fontSize: 14 }}>
+                    <span style={{ fontWeight: 600 }}>@{u.username}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
 
           <div className="row" style={{ gap: 6 }}>
             <button className="btn btn-sm btn-ghost" onClick={() => setLang(lang === "fr" ? "en" : "fr")} title="Language / Langue">

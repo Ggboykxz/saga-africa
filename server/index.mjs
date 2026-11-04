@@ -547,6 +547,16 @@ app.post("/api/notifications/read-all", requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
+// ---- library: followed series ----
+app.get("/api/library", requireAuth, (req, res) => {
+  const rows = all(
+    `${SERIES_SELECT}
+     JOIN follows f ON f.series_id = s.id
+     WHERE f.user_id = ? ORDER BY f.created_at DESC`, req.user.id
+  );
+  res.json({ series: rows.map((r) => seriesRow(r, req.user)) });
+});
+
 // ---- per-series stats ----
 app.get("/api/series/:slug/stats", (req, res) => {
   const row = get("SELECT id FROM series WHERE slug=?", req.params.slug);

@@ -177,6 +177,22 @@ test("stats endpoint + search + leaderboard", async () => {
   assert.ok(lb.body.series.length >= 1);
 });
 
+test("library lists followed series", async () => {
+  await j("/api/auth/login", { method: "POST", body: JSON.stringify({ email: "fan1@x.test", password: "secret123" }) });
+  const create = await j("/api/series", { method: "POST", body: JSON.stringify({
+    title: "Série Library", titleEn: "Library Series", synopsis: "x", synopsisEn: "x", format: "webtoon",
+  }) });
+  const slug = create.body.series.slug;
+  await j(`/api/series/${slug}/follow`, { method: "POST" });
+  const lib = await j("/api/library");
+  assert.equal(lib.status, 200);
+  assert.ok(lib.body.series.some((s) => s.slug === slug));
+  // unauthenticated -> 401
+  cookie = "";
+  const anon = await j("/api/library");
+  assert.equal(anon.status, 401);
+});
+
 test("ranking + draft preview access", async () => {
   const rk = await j("/api/ranking?genre=Romance");
   assert.equal(rk.status, 200);
