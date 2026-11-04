@@ -6,6 +6,7 @@ import { useI18n } from "@/lib/i18n";
 import { api, type Series } from "@/lib/api";
 import { SeriesCard } from "@/components/SeriesCard";
 import { nFmt, dateFmt } from "@/lib/format";
+import { Eye, Heart } from "@/components/icons";
 
 export default function ProfilePage() {
   const { username } = useParams() as { username: string };
@@ -37,8 +38,8 @@ export default function ProfilePage() {
           <p className="muted" style={{ margin: "4px 0" }}>{user.bio || "—"}</p>
           <div className="row wrap" style={{ gap: 14, marginTop: 6, fontSize: 14, color: "var(--fg-muted)" }}>
             <span>{t("series_chapters")} {works.length}</span>
-            <span>👁 {nFmt(data.totalViews)}</span>
-            <span>❤️ {nFmt(data.totalLikes)}</span>
+            <span className="row" style={{ gap: 5 }}><Eye size={15} /> {nFmt(data.totalViews)}</span>
+            <span className="row" style={{ gap: 5 }}><Heart size={15} /> {nFmt(data.totalLikes)}</span>
             <span>{t("profile_joined")} {dateFmt(user.created_at, lang)}</span>
           </div>
         </div>

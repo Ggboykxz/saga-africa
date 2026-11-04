@@ -11,6 +11,7 @@ import { SkeletonGrid, SkeletonRow } from "@/components/Skeleton";
 import { useToast } from "@/lib/toast";
 import { nFmt, dateFmt, coverStyle } from "@/lib/format";
 import { getProgress } from "@/lib/progress";
+import { Eye, Heart, MessageCircle, Bell, Play, AlertTriangle, Globe, Calendar, Check, Plus } from "@/components/icons";
 
 export default function SeriesPage() {
   const { slug } = useParams() as { slug: string };
@@ -108,10 +109,10 @@ export default function SeriesPage() {
                 <span style={{ fontWeight: 700, color: "var(--fg)" }}>{s.author.username}</span>
               </Link>
               <span>{t("series_chapters")} {s.stats.chapters}</span>
-              <span>👁 {nFmt(s.stats.views)}</span>
-              <span>❤️ {nFmt(s.stats.likes)}</span>
-              <span>💬 {nFmt(s.stats.comments)}</span>
-              <span>🔔 {nFmt(s.stats.follows)}</span>
+              <span className="row" style={{ gap: 5 }}><Eye size={15} /> {nFmt(s.stats.views)}</span>
+              <span className="row" style={{ gap: 5 }}><Heart size={15} /> {nFmt(s.stats.likes)}</span>
+              <span className="row" style={{ gap: 5 }}><MessageCircle size={15} /> {nFmt(s.stats.comments)}</span>
+              <span className="row" style={{ gap: 5 }}><Bell size={15} /> {nFmt(s.stats.follows)}</span>
               <span className="tiny muted">{dateFmt(s.createdAt, lang)}</span>
             </div>
           </div>
@@ -119,17 +120,21 @@ export default function SeriesPage() {
             {chapters.length > 0 && (
               continueChapter ? (
                 <Link href={`/reader/${s.slug}/${continueChapter}`} className="btn btn-primary btn-lg">
-                  ▶ {t("continue_reading_cta")} #{continueChapter}
+                  <Play size={18} filled /> {t("continue_reading_cta")} #{continueChapter}
                 </Link>
               ) : (
-                <Link href={`/reader/${s.slug}/${chapters[0].number}`} className="btn btn-primary btn-lg">{t("read_now")}</Link>
+                <Link href={`/reader/${s.slug}/${chapters[0].number}`} className="btn btn-primary btn-lg"><Play size={18} filled /> {t("read_now")}</Link>
               )
             )}
             <button className={`btn btn-lg ${s.userState.followed ? "btn-electron" : "btn-ghost"}`} onClick={() => toggle("follow")}>
-              {s.userState.followed ? `✓ ${t("following")}` : `+ ${t("follow")}`}
+              {s.userState.followed ? (
+                <><Check size={18} /> {t("following")}</>
+              ) : (
+                <><Plus size={18} /> {t("follow")}</>
+              )}
             </button>
-            <button className={`btn btn-lg btn-ghost ${s.userState.liked ? "" : ""}`} onClick={() => toggle("like")}>
-              {s.userState.liked ? "❤️ " + t("liked") : "🤍 " + t("like")}
+            <button className="btn btn-lg btn-ghost" onClick={() => toggle("like")}>
+              <Heart size={18} filled={s.userState.liked} /> {s.userState.liked ? t("liked") : t("like")}
             </button>
           </div>
         </div>
@@ -156,7 +161,7 @@ export default function SeriesPage() {
                   <div style={{ fontWeight: 700 }}>{lang === "fr" ? c.title : c.title_en}</div>
                   <div className="tiny muted">{c.pages} pages · {c.views != null ? `${nFmt(c.views)} ${t("series_views")} · ` : ""}{dateFmt(c.created_at, lang)}</div>
                 </div>
-                <span className="btn btn-sm btn-ghost" style={{ pointerEvents: "none" }}>▶</span>
+                <span className="btn btn-sm btn-ghost" style={{ pointerEvents: "none" }}><Play size={14} filled /></span>
               </Link>
             ))}
             <hr className="divider" />
@@ -184,9 +189,9 @@ export default function SeriesPage() {
                 )}
                 <hr className="divider" style={{ margin: "16px 0" }} />
                 <div style={{ fontSize: 13, color: "var(--fg-muted)", lineHeight: 2 }}>
-                  <div>🌍 {s.language === "fr" ? "Français" : "English"}</div>
-                  <div>📅 {t("profile_joined")} {dateFmt(s.createdAt, lang)}</div>
-                  {s.warned && <div style={{ color: "var(--brand-soft)" }}>⚠️ {t("warning_pegi")} {s.warningPegi || ""}</div>}
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}><Globe size={14} /> {s.language === "fr" ? "Français" : "English"}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}><Calendar size={14} /> {t("profile_joined")} {dateFmt(s.createdAt, lang)}</div>
+                  {s.warned && <div style={{ color: "var(--brand-soft)", display: "flex", alignItems: "center", gap: 6 }}><AlertTriangle size={14} /> {t("warning_pegi")} {s.warningPegi || ""}</div>}
                 </div>
               </div>
             </div>
@@ -207,8 +212,8 @@ export default function SeriesPage() {
       {showWarn && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(8,10,14,0.8)", zIndex: 90, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div className="card" style={{ maxWidth: 460, width: "100%", padding: 32, textAlign: "center" }}>
-            <div style={{ fontSize: 42 }}>⚠️</div>
-            <h3 className="title-md" style={{ marginTop: 8 }}>{t("warning_pegi")}</h3>
+            <AlertTriangle size={42} style={{ margin: "0 auto 8px", color: "var(--brand)" }} />
+            <h3 className="title-md">{t("warning_pegi")}</h3>
             <p className="muted">« {title} » contient des avertissements : <strong>{s.warningPegi || "18+"}</strong></p>
             <div className="row" style={{ justifyContent: "center", marginTop: 18 }}>
               <button className="btn btn-ghost" onClick={() => setShowWarn(false)}>{t("warning_cancel")}</button>

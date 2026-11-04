@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { api, type Me } from "@/lib/api";
 import { timeAgo } from "@/lib/format";
+import { Bell, LogOut, Globe } from "./icons";
 
 export function Logo({ size = 30 }: { size?: number }) {
   return (
@@ -30,7 +31,6 @@ export function Navbar() {
   const router = useRouter();
   const [me, setMe] = useState<Me>(null);
   const [q, setQ] = useState("");
-  const [drawer, setDrawer] = useState(false);
   const [notifs, setNotifs] = useState<Notif[]>([]);
   const [unread, setUnread] = useState(0);
   const [bellOpen, setBellOpen] = useState(false);
@@ -103,15 +103,13 @@ export function Navbar() {
 
         <div className="row" style={{ gap: 6 }}>
           <button className="btn btn-sm btn-ghost" onClick={() => setLang(lang === "fr" ? "en" : "fr")} title="Language / Langue">
-            {lang === "fr" ? "EN" : "FR"}
+            <Globe size={15} /> {lang === "fr" ? "EN" : "FR"}
           </button>
           {me ? (
             <>
               <div ref={bellRef} style={{ position: "relative" }}>
                 <button className="btn btn-sm btn-ghost btn-icon" onClick={openBell} aria-label={t("notif_title")}>
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                  <Bell size={17} />
                   {unread > 0 && (
                     <span style={{ position: "absolute", top: -2, right: -2, minWidth: 17, height: 17, padding: "0 4px", borderRadius: 999, background: "var(--brand)", color: "#240a00", fontSize: 11, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
                       {unread > 9 ? "9+" : unread}
@@ -138,9 +136,7 @@ export function Navbar() {
               </div>
               <Link href="/dashboard" className="btn btn-sm btn-ghost">{t("nav_dashboard")}</Link>
               <button className="btn btn-sm btn-ghost btn-icon" onClick={logout} title={t("nav_logout")} aria-label={t("nav_logout")}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+                <LogOut size={16} />
               </button>
             </>
           ) : (
@@ -149,7 +145,7 @@ export function Navbar() {
               <Link href="/sign-up" className="btn btn-sm btn-electron">{t("nav_signup")}</Link>
             </>
           )}
-          <button className="btn btn-sm btn-ghost btn-icon" onClick={() => setDrawer(!drawer)} style={{ display: "none" }}>☰</button>
+          <button className="btn btn-sm btn-ghost btn-icon" style={{ display: "none" }} aria-hidden>·</button>
         </div>
       </div>
     </header>

@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
+import { BookOpen, Upload, Trophy } from "@/components/icons";
 
 export default function CreatorsPage() {
   const { t } = useI18n();
   const steps = [
-    ["✍️", "home_read", "home_read_sub"],
-    ["🚀", "home_publish", "home_publish_sub"],
-    ["💰", "home_monetize", "home_monetize_sub"],
+    [BookOpen, "home_read", "home_read_sub"],
+    [Upload, "home_publish", "home_publish_sub"],
+    [Trophy, "home_monetize", "home_monetize_sub"],
   ];
   return (
     <div className="container section">
@@ -20,11 +21,11 @@ export default function CreatorsPage() {
       </div>
 
       <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 20 }}>
-        {steps.map(([icon, k, sub]) => (
-          <div key={k} className="card"><div className="card-body" style={{ padding: 28, textAlign: "center" }}>
-            <div style={{ fontSize: 44 }}>{icon}</div>
-            <h3 className="title-md">{t(k)}</h3>
-            <p className="muted small">{t(sub)}</p>
+        {steps.map(([Ico, k, sub]) => (
+          <div key={k as string} className="card"><div className="card-body" style={{ padding: 28, textAlign: "center" }}>
+            <Ico size={44} style={{ margin: "0 auto 10px", color: "var(--brand)" }} />
+            <h3 className="title-md">{t(k as string)}</h3>
+            <p className="muted small">{t(sub as string)}</p>
           </div></div>
         ))}
       </div>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { api, type Comment } from "@/lib/api";
 import { timeAgo } from "@/lib/format";
+import { Heart } from "./icons";
 
 export function Comments({ slug, chapterId }: { slug: string; chapterId?: number }) {
   const { t } = useI18n();
@@ -76,7 +77,7 @@ export function Comments({ slug, chapterId }: { slug: string; chapterId?: number
           </div>
           <p style={{ margin: "0 0 8px", fontSize: 14.5 }}>{c.body}</p>
           <div className="row" style={{ gap: 12 }}>
-            <button className="btn btn-sm btn-ghost" onClick={() => like(c.id)}>❤️ {c.likes}</button>
+            <button className="btn btn-sm btn-ghost" onClick={() => like(c.id)}><Heart size={15} /> {c.likes}</button>
             <button className="btn btn-sm btn-ghost" onClick={() => setReplyTo(replyTo === c.id ? null : c.id)}>{t("comments_reply")}</button>
           </div>
           {replyTo === c.id && (
@@ -92,7 +93,7 @@ export function Comments({ slug, chapterId }: { slug: string; chapterId?: number
                 <span className="tiny muted">{timeAgo(r.created_at, "fr")}</span>
               </div>
               <p style={{ margin: 0, fontSize: 14 }}>{r.body}</p>
-              <button className="btn btn-sm btn-ghost" style={{ padding: "4px 10px", marginTop: 4 }} onClick={() => like(r.id)}>❤️ {r.likes}</button>
+              <button className="btn btn-sm btn-ghost" style={{ padding: "4px 10px", marginTop: 4 }} onClick={() => like(r.id)}><Heart size={14} /> {r.likes}</button>
             </div>
           ))}
         </div>

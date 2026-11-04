@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
 import { Logo } from "./Navbar";
+import { Twitter, Instagram, Discord } from "./icons";
 
 export function Footer() {
   const { t } = useI18n();
@@ -18,9 +19,9 @@ export function Footer() {
             </div>
             <p className="muted small" style={{ marginTop: 10, maxWidth: 280 }}>{t("tagline")}</p>
             <div className="row" style={{ marginTop: 14, gap: 8 }}>
-              {["𝕏", "Instagram", "Discord"].map((s) => (
-                <span key={s} className="pill" style={{ cursor: "default" }}>{s}</span>
-              ))}
+              <span className="pill" style={{ cursor: "default" }} title="X"><Twitter size={15} /></span>
+              <span className="pill" style={{ cursor: "default" }} title="Instagram"><Instagram size={15} /></span>
+              <span className="pill" style={{ cursor: "default" }} title="Discord"><Discord size={15} /></span>
             </div>
           </div>
 

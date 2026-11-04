@@ -7,6 +7,7 @@ import { api, type Series, type Chapter } from "@/lib/api";
 import { useToast } from "@/lib/toast";
 import { uploadImage } from "@/lib/upload";
 import { nFmt, timeAgo, coverStyle } from "@/lib/format";
+import { Eye, Heart, Bell, Plus, Pencil, Trash, Sparkles, Upload } from "@/components/icons";
 
 type Activity = { kind: string; title: string; slug: string; s_title: string; at: number };
 type Stats = { daily: { day: string; views: number }[]; totals: Record<string, number> };
@@ -108,9 +109,9 @@ function SeriesPanel({ s, onChanged }: { s: Series; onChanged: () => void }) {
               {s.origin === "original" && <span className="badge-original">Original</span>}
             </div>
             <div className="row wrap" style={{ marginTop: 6, gap: 12, fontSize: 13, color: "var(--fg-muted)" }}>
-              <span>👁 {nFmt(s.stats.views)}</span>
-              <span>❤️ {nFmt(s.stats.likes)}</span>
-              <span>🔔 {nFmt(s.stats.follows)}</span>
+              <span className="row" style={{ gap: 5 }}><Eye size={14} /> {nFmt(s.stats.views)}</span>
+              <span className="row" style={{ gap: 5 }}><Heart size={14} /> {nFmt(s.stats.likes)}</span>
+              <span className="row" style={{ gap: 5 }}><Bell size={14} /> {nFmt(s.stats.follows)}</span>
               <span>{s.stats.chapters} {t("dashboard_chapters")}</span>
             </div>
             {stats && stats.daily.length > 0 && (
@@ -121,9 +122,9 @@ function SeriesPanel({ s, onChanged }: { s: Series; onChanged: () => void }) {
             )}
           </div>
           <div className="row" style={{ flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
-            <button className="btn btn-sm btn-ghost" onClick={() => setEditOpen(true)}>{t("edit_series")}</button>
-            <button className="btn btn-sm btn-primary" onClick={() => addChapter(false)}>{t("dashboard_add_chapter")}</button>
-            <button className="btn btn-sm btn-ghost" onClick={() => addChapter(true)}>✎ {t("draft")}</button>
+            <button className="btn btn-sm btn-ghost" onClick={() => setEditOpen(true)}><Pencil size={14} /> {t("edit_series")}</button>
+            <button className="btn btn-sm btn-primary" onClick={() => addChapter(false)}><Plus size={14} /> {t("dashboard_add_chapter")}</button>
+            <button className="btn btn-sm btn-ghost" onClick={() => addChapter(true)}><Pencil size={14} /> {t("draft")}</button>
           </div>
         </div>
 
@@ -147,7 +148,7 @@ function SeriesPanel({ s, onChanged }: { s: Series; onChanged: () => void }) {
                   ) : (
                     <button className="btn btn-sm btn-electron" onClick={() => setChapterPublish(ch, true)}>{t("publish_now")}</button>
                   )}
-                  <button className="btn btn-sm btn-danger" onClick={() => deleteChapter(ch)}>{t("delete_chapter")}</button>
+                  <button className="btn btn-sm btn-danger" onClick={() => deleteChapter(ch)}><Trash size={14} /> {t("delete_chapter")}</button>
                 </div>
               </div>
             ))}
@@ -328,7 +329,7 @@ export default function DashboardPage() {
 
       {works.length === 0 ? (
         <div className="card" style={{ padding: 48, textAlign: "center", marginTop: 24 }}>
-          <div style={{ fontSize: 40 }}>🎨</div>
+          <Upload size={40} style={{ margin: "0 auto 12px", color: "var(--brand)" }} />
           <p className="muted">{t("dashboard_none")}</p>
           <Link href="/publish" className="btn btn-primary" style={{ marginTop: 8 }}>{t("dashboard_create")}</Link>
         </div>

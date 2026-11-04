@@ -8,6 +8,7 @@ import type { Series } from "@/lib/api";
 import { SeriesCard } from "@/components/SeriesCard";
 import { SkeletonGrid } from "@/components/Skeleton";
 import { nFmt, timeAgo, coverStyle } from "@/lib/format";
+import { Eye, Sparkles } from "@/components/icons";
 
 function SectionHead({ k, sub }: { k: string; sub?: string }) {
   const { t } = useI18n();
@@ -106,8 +107,8 @@ export default function HomePage() {
           <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 14 }}>
             {popular.map((s, i) => (
               <Link key={s.slug} href={`/series/${s.slug}`} className="card card-hover" style={{ display: "block", aspectRatio: "3/4", position: "relative", ...coverStyle(s, i) }}>
-                <span className="badge-canvas" style={{ position: "absolute", top: 10, left: 10, background: "rgba(12,15,20,0.7)", color: "#fff" }}>
-                  👁 {nFmt(s.stats.views)}
+                <span className="badge-canvas" style={{ position: "absolute", top: 10, left: 10, background: "rgba(12,15,20,0.7)", color: "#fff", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <Eye size={13} /> {nFmt(s.stats.views)}
                 </span>
                 <div style={{ position: "absolute", bottom: 10, left: 12, right: 12, color: "#fff", fontWeight: 800, fontFamily: "var(--font-display)" }}>{s.title}</div>
               </Link>
@@ -138,8 +139,8 @@ export default function HomePage() {
           <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 14 }}>
             {discover.map((s, i) => (
               <Link key={s.slug} href={`/series/${s.slug}`} className="card card-hover" style={{ display: "block", aspectRatio: "3/4", position: "relative", ...coverStyle(s, i) }}>
-                <span className="badge-canvas" style={{ position: "absolute", top: 10, left: 10, background: "rgba(12,15,20,0.7)", color: "#fff" }}>
-                  ✦ {s.stats.follows} {t("series_followers")}
+                <span className="badge-canvas" style={{ position: "absolute", top: 10, left: 10, background: "rgba(12,15,20,0.7)", color: "#fff", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <Sparkles size={13} /> {s.stats.follows} {t("series_followers")}
                 </span>
                 <div style={{ position: "absolute", bottom: 10, left: 12, right: 12, color: "#fff", fontWeight: 800, fontFamily: "var(--font-display)" }}>{s.title}</div>
               </Link>

@@ -8,6 +8,7 @@ import { api, type Series } from "@/lib/api";
 import { SeriesCard } from "@/components/SeriesCard";
 import { SkeletonGrid } from "@/components/Skeleton";
 import { nFmt, coverStyle } from "@/lib/format";
+import { BookOpen, X } from "@/components/icons";
 
 const SORTS = ["trending", "popular", "likes", "new", "title"] as const;
 const FORMATS = ["", "manga", "webtoon", "nolovel", "lightnovel", "artbook"] as const;
@@ -65,7 +66,7 @@ function CatalogInner() {
         </select>
         {(format || genre || q || origin) && (
           <button className="btn btn-sm btn-ghost" onClick={() => { setFormat(""); setGenre(""); setQ(""); setOrigin(""); }}>
-            ✕ {t("clear_filters")}
+            <X size={14} /> {t("clear_filters")}
           </button>
         )}
       </div>
@@ -78,7 +79,7 @@ function CatalogInner() {
         <SkeletonGrid n={12} />
       ) : series.length === 0 ? (
         <div className="card" style={{ padding: 48, textAlign: "center" }}>
-          <div style={{ fontSize: 40 }}>🫥</div>
+          <BookOpen size={40} style={{ margin: "0 auto 12px", color: "var(--fg-muted)" }} />
           <p className="muted">Aucune série ne correspond à ces filtres.</p>
         </div>
       ) : (

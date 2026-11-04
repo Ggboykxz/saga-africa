@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { PageArt, type PageSpec } from "@/components/panels";
 import { Comments } from "@/components/Comments";
 import { getProgress, setProgress } from "@/lib/progress";
+import { BookOpen, Sparkles, ArrowLeft, ChevronLeft, ChevronRight, SearchIcon, Play } from "@/components/icons";
 
 type ReaderData = {
   preview?: boolean;
@@ -104,7 +105,7 @@ export default function ReaderPage() {
       <div style={{ position: "sticky", top: 60, zIndex: 40, background: "rgba(12,15,20,0.92)", backdropFilter: "blur(10px)", borderBottom: "1px solid var(--line)" }}>
         <div className="container row-between" style={{ height: 52, gap: 8 }}>
           <Link href={`/series/${data.series.slug}`} className="row" style={{ gap: 8, fontSize: 14, fontWeight: 700, minWidth: 0 }}>
-            <span style={{ width: 30, height: 30, borderRadius: 8, background: "var(--bg-soft)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>◀</span>
+            <span style={{ width: 30, height: 30, borderRadius: 8, background: "var(--bg-soft)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><ArrowLeft size={16} /></span>
             <span style={{ maxWidth: 240, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{seriesTitle}</span>
             <span className="muted" style={{ fontWeight: 400 }}>· #{data.chapter.number} {title}</span>
             {data.preview && <span className="badge-canvas" style={{ background: "var(--brand)", color: "#240a00" }}>{t("preview_badge")}</span>}
@@ -112,7 +113,7 @@ export default function ReaderPage() {
           <div className="row" style={{ gap: 8 }}>
             {!isManga && (
               <button className={`btn btn-sm ${zoom ? "btn-primary" : "btn-ghost"}`} onClick={() => setZoom(!zoom)} title={t("zoom")}>
-                🔍 {zoom ? t("reader_zoom_on") : t("reader_zoom_off")}
+                <SearchIcon size={15} /> {zoom ? t("reader_zoom_on") : t("reader_zoom_off")}
               </button>
             )}
             {data.nav.prev && <Link href={`/reader/${slug}/${data.nav.prev}`} className="btn btn-sm btn-ghost">{t("reader_first")}</Link>}
@@ -130,7 +131,7 @@ export default function ReaderPage() {
       {isManga && hint && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(8,10,14,0.85)", zIndex: 80, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div className="card" style={{ maxWidth: 440, width: "100%", padding: 28, textAlign: "center" }}>
-            <div style={{ fontSize: 38 }}>📖</div>
+            <BookOpen size={40} style={{ margin: "0 auto 8px", color: "var(--brand)" }} />
             <h3 className="title-md">Sens japonais</h3>
             <p className="muted">{t("reader_direction")}</p>
             <p className="muted small">{t("reader_swipe")}</p>
@@ -149,8 +150,12 @@ export default function ReaderPage() {
                 </div>
               ))}
             </div>
-            <button onClick={() => go(-1)} aria-label={t("reader_prev")} style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "18%", background: "transparent", border: 0, color: "rgba(255,255,255,0.5)", fontSize: 40, opacity: pageIdx === 0 ? 0.2 : 1 }}>›</button>
-            <button onClick={() => go(1)} aria-label={t("reader_next")} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "18%", background: "transparent", border: 0, color: "rgba(255,255,255,0.5)", fontSize: 40, opacity: pageIdx === pageCount - 1 ? 0.2 : 1 }}>‹</button>
+            <button onClick={() => go(-1)} aria-label={t("reader_prev")} style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "18%", background: "transparent", border: 0, color: "rgba(255,255,255,0.5)", display: "flex", alignItems: "center", justifyContent: "center", opacity: pageIdx === 0 ? 0.2 : 1 }}>
+              <ChevronRight size={40} />
+            </button>
+            <button onClick={() => go(1)} aria-label={t("reader_next")} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "18%", background: "transparent", border: 0, color: "rgba(255,255,255,0.5)", display: "flex", alignItems: "center", justifyContent: "center", opacity: pageIdx === pageCount - 1 ? 0.2 : 1 }}>
+              <ChevronLeft size={40} />
+            </button>
           </div>
           <div className="tiny muted" style={{ marginTop: 14 }}>{pageIdx + 1} / {pageCount}</div>
         </div>
@@ -184,7 +189,7 @@ export default function ReaderPage() {
       {/* end of chapter */}
       <div className="container" style={{ paddingTop: 40, maxWidth: 760 }}>
         <div className="card" style={{ textAlign: "center", padding: "36px 24px" }}>
-          <div style={{ fontSize: 40 }}>🎉</div>
+          <Sparkles size={40} style={{ margin: "0 auto 8px", color: "var(--brand)" }} />
           <h3 className="title-md">{t("reader_end")}</h3>
           <p className="muted">{t("reader_end_sub")}</p>
           <div className="row wrap" style={{ justifyContent: "center", marginTop: 14 }}>

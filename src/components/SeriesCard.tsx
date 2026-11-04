@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
 import { nFmt, coverStyle } from "@/lib/format";
 import type { Series } from "@/lib/api";
+import { Eye, Heart, MessageCircle } from "./icons";
 
 export function SeriesCard({ s, seed = 0 }: { s: Series; seed?: number }) {
   const { t } = useI18n();
@@ -32,9 +33,9 @@ export function SeriesCard({ s, seed = 0 }: { s: Series; seed?: number }) {
           ))}
         </div>
         <div className="row" style={{ marginTop: 8, gap: 10, fontSize: 12.5, color: "var(--fg-muted)" }}>
-          <span>👁 {nFmt(s.stats.views)} {t("series_views")}</span>
-          <span>❤️ {nFmt(s.stats.likes)}</span>
-          <span>💬 {nFmt(s.stats.comments)}</span>
+          <span className="row" style={{ gap: 4 }}><Eye size={14} /> {nFmt(s.stats.views)}</span>
+          <span className="row" style={{ gap: 4 }}><Heart size={14} /> {nFmt(s.stats.likes)}</span>
+          <span className="row" style={{ gap: 4 }}><MessageCircle size={14} /> {nFmt(s.stats.comments)}</span>
         </div>
       </div>
     </Link>
