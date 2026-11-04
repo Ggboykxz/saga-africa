@@ -146,6 +146,12 @@ test("likes, follows, comments, notifications", async () => {
   assert.equal(follow.body.followed, true);
   const cm = await j(`/api/series/${slug}/comments`, { method: "POST", body: JSON.stringify({ body: "Sympa !" }) });
   assert.equal(cm.status, 201);
+  // fan2 replies to fan1's comment -> fan1 gets a notification
+  await j("/api/auth/register", { method: "POST", body: JSON.stringify({ username: "fan2", email: "fan2@x.test", password: "secret123" }) });
+  await j(`/api/series/${slug}/comments`, { method: "POST", body: JSON.stringify({ body: "Oui !", parentId: cm.body.comment.id }) });
+  await j("/api/auth/login", { method: "POST", body: JSON.stringify({ email: "fan1@x.test", password: "secret123" }) });
+  const fanNotif = await j("/api/notifications");
+  assert.ok(fanNotif.body.unread >= 1);
   // owner should have a notification
   await j("/api/auth/login", { method: "POST", body: JSON.stringify({ email: "t@x.test", password: "secret123" }) });
   const notif = await j("/api/notifications");

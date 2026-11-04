@@ -11,7 +11,7 @@ import { SkeletonGrid, SkeletonRow } from "@/components/Skeleton";
 import { useToast } from "@/lib/toast";
 import { nFmt, dateFmt, coverStyle } from "@/lib/format";
 import { getProgress } from "@/lib/progress";
-import { Eye, Heart, MessageCircle, Bell, Play, AlertTriangle, Globe, Calendar, Check, Plus } from "@/components/icons";
+import { Eye, Heart, MessageCircle, Bell, Play, AlertTriangle, Globe, Calendar, Check, Plus, Link as LinkIcon } from "@/components/icons";
 
 export default function SeriesPage() {
   const { slug } = useParams() as { slug: string };
@@ -145,6 +145,21 @@ export default function SeriesPage() {
             </button>
             <button className="btn btn-lg btn-ghost" onClick={() => toggle("like")}>
               <Heart size={18} filled={s.userState.liked} /> {s.userState.liked ? t("liked") : t("like")}
+            </button>
+            <button
+              className="btn btn-lg btn-ghost btn-icon"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(window.location.href);
+                  push(t("toast_shared"));
+                } catch {
+                  push(t("error_required"));
+                }
+              }}
+              title={t("share_link")}
+              aria-label={t("share_link")}
+            >
+              <LinkIcon size={18} />
             </button>
           </div>
         </div>

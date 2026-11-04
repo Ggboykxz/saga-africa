@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useI18n } from "@/lib/i18n";
@@ -9,6 +9,8 @@ import { PageArt, type PageSpec } from "@/components/panels";
 import { Comments } from "@/components/Comments";
 import { getProgress, setProgress } from "@/lib/progress";
 import { BookOpen, Sparkles, ArrowLeft, ChevronLeft, ChevronRight, SearchIcon, Play } from "@/components/icons";
+
+const MemoPageArt = memo(PageArt);
 
 type ReaderData = {
   preview?: boolean;
@@ -146,7 +148,7 @@ export default function ReaderPage() {
             <div style={{ display: "flex", transform: `translateX(${-pageIdx * 100}%)`, transition: "transform 0.3s ease" }}>
               {data.pages.map((p, i) => (
                 <div key={i} style={{ minWidth: "100%" }}>
-                  <PageArt page={p} width={720} />
+                  <MemoPageArt page={p} width={720} />
                 </div>
               ))}
             </div>
@@ -173,7 +175,7 @@ export default function ReaderPage() {
         >
           {data.pages.map((p, i) => (
             <div key={i} style={{ marginBottom: 14, borderRadius: 8, overflow: "hidden", boxShadow: "var(--shadow-2)", width: "min(720px, 94vw)" }}>
-              <PageArt page={p} />
+              <MemoPageArt page={p} />
             </div>
           ))}
         </div>

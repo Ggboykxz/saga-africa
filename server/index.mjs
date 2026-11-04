@@ -507,6 +507,16 @@ app.post("/api/series/:slug/comments", requireAuth, (req, res) => {
       row.author_id, req.params.slug, `${req.user.username} a commenté votre série.`, now()
     );
   }
+  // notify the author of the parent comment when it's a reply
+  if (b.parentId) {
+    const parent = get("SELECT user_id FROM comments WHERE id=?", Number(b.parentId));
+    if (parent && parent.user_id !== req.user.id && parent.user_id !== row.author_id) {
+      run(
+        "INSERT INTO notifications (user_id,series_slug,text,created_at) VALUES (?,?,?,?)",
+        parent.user_id, req.params.slug, `${req.user.username} a répondu à votre commentaire.`, now()
+      );
+    }
+  }
   res.status(201).json({ comment: c });
 });
 
