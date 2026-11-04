@@ -26,6 +26,26 @@ app.use((req, res, next) => {
 
 app.use(express.json({ limit: "8mb" }));
 
+// ---- rate limiting (sliding window, in-memory, isolated buckets) ----
+const WINDOW_MS = 60_000;
+function makeLimiter(max, windowMs = WINDOW_MS) {
+  const limits = new Map();
+  return (req, res, next) => {
+    const key = req.ip || req.socket.remoteAddress || "?";
+    const now = Date.now();
+    const bucket = limits.get(key) || { t: now, n: 0 };
+    if (now - bucket.t > windowMs) { bucket.t = now; bucket.n = 0; }
+    bucket.n++;
+    limits.set(key, bucket);
+    if (bucket.n > max) return res.status(429).json({ error: "rate_limited" });
+    next();
+  };
+}
+app.use("/api/auth", makeLimiter(30));
+app.use("/api", makeLimiter(240));
+
+const MAX_LEN = { title: 120, synopsis: 4000, body: 2000, username: 24, bio: 400 };
+
 // ---- minimal middleware ----
 function cookies(req) {
   const out = {};
@@ -224,15 +244,18 @@ app.get("/api/series/:slug", (req, res) => {
 app.post("/api/series", requireAuth, (req, res) => {
   const b = req.body || {};
   if (!b.title || !b.titleEn || !b.synopsis || !b.synopsisEn) return res.status(400).json({ error: "missing_fields" });
+  if (b.title.length > MAX_LEN.title || b.titleEn.length > MAX_LEN.title) return res.status(400).json({ error: "title_too_long" });
+  if (b.synopsis.length > MAX_LEN.synopsis || b.synopsisEn.length > MAX_LEN.synopsis) return res.status(400).json({ error: "synopsis_too_long" });
   if (!FORMATS.includes(b.format)) return res.status(400).json({ error: "bad_format" });
+  if ((b.genres || []).length > 8 || (b.tags || []).length > 12) return res.status(400).json({ error: "too_many_meta" });
   let slug = slugify(b.slug || b.title);
   if (get("SELECT 1 x FROM series WHERE slug=?", slug)) slug = `${slug}-${Date.now().toString(36)}`;
   const id = run(
-    `INSERT INTO series (slug,title,title_en,synopsis,synopsis_en,author_id,format,status,access,origin,cover_color,language,warned,warning_pegi,created_at,updated_at)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    `INSERT INTO series (slug,title,title_en,synopsis,synopsis_en,author_id,format,status,access,origin,cover,cover_color,language,warned,warning_pegi,created_at,updated_at)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     slug, b.title, b.titleEn, b.synopsis, b.synopsisEn, req.user.id,
     b.format, b.status || "ongoing", b.access || "free", b.origin || "canvas",
-    b.coverColor || "#ea5427", b.language || "fr", b.warned ? 1 : 0, b.warningPegi || "", now(), now()
+    b.cover || "", b.coverColor || "#ea5427", b.language || "fr", b.warned ? 1 : 0, b.warningPegi || "", now(), now()
   ).id;
   for (const g of b.genres || []) run("INSERT INTO series_genres (series_id,genre) VALUES (?,?)", id, g);
   for (const t of b.tags || []) run("INSERT INTO tags (series_id,tag) VALUES (?,?)", id, t);
@@ -247,13 +270,13 @@ app.patch("/api/series/:slug", requireAuth, (req, res) => {
   const b = req.body || {};
   const sets = [];
   const params = [];
-  for (const k of ["title", "title_en", "synopsis", "synopsis_en", "status", "access", "origin", "cover_color", "language", "warning_pegi"]) {
-    if (b[k] !== undefined) { sets.push(`s.${k} = ?`); params.push(b[k]); }
+  for (const k of ["title", "title_en", "synopsis", "synopsis_en", "status", "access", "origin", "cover", "cover_color", "language", "warning_pegi"]) {
+    if (b[k] !== undefined) { sets.push(`${k} = ?`); params.push(b[k]); }
   }
-  if (b.warned !== undefined) { sets.push("s.warned = ?"); params.push(b.warned ? 1 : 0); }
-  sets.push("s.updated_at = ?"); params.push(now());
+  if (b.warned !== undefined) { sets.push("warned = ?"); params.push(b.warned ? 1 : 0); }
+  sets.push("updated_at = ?"); params.push(now());
   params.push(row.id);
-  db.prepare(`UPDATE series s SET ${sets.join(", ")} WHERE s.id = ?`).run(...params);
+  db.prepare(`UPDATE series SET ${sets.join(", ")} WHERE id = ?`).run(...params);
   if (b.genres) {
     db.prepare("DELETE FROM series_genres WHERE series_id=?").run(row.id);
     for (const g of b.genres) run("INSERT INTO series_genres (series_id,genre) VALUES (?,?)", row.id, g);
@@ -286,14 +309,16 @@ app.post("/api/series/:slug/like", requireAuth, (req, res) => {
 
 // ---- chapters ----
 app.get("/api/series/:slug/chapters", (req, res) => {
-  const row = get("SELECT id FROM series WHERE slug=?", req.params.slug);
+  const row = get("SELECT id, author_id FROM series WHERE slug=?", req.params.slug);
   if (!row) return res.status(404).json({ error: "not_found" });
-  const chapters = all(
+  const me = currentUser(req);
+  const isOwner = me && me.id === row.author_id;
+  let chapters = all(
     `SELECT c.*, (SELECT COALESCE(SUM(n),0) FROM views v WHERE v.chapter_id=c.id) AS views,
             (SELECT COUNT(*) FROM comments cm WHERE cm.chapter_id=c.id) AS comments
-     FROM chapters c WHERE c.series_id=? AND c.is_publish=1 ORDER BY c.number`, row.id
+     FROM chapters c WHERE c.series_id=? ${isOwner ? "" : "AND c.is_publish=1"} ORDER BY c.number`, row.id
   );
-  res.json({ chapters });
+  res.json({ chapters, isOwner: !!isOwner });
 });
 
 app.post("/api/series/:slug/chapters", requireAuth, (req, res) => {
@@ -305,11 +330,42 @@ app.post("/api/series/:slug/chapters", requireAuth, (req, res) => {
   const num = b.number ?? get("SELECT COALESCE(MAX(number),0)+1 AS n FROM chapters WHERE series_id=?", row.id).n;
   const pages = Math.max(4, Math.min(200, Number(b.pages) || 24));
   const id = run(
-    "INSERT INTO chapters (series_id,number,title,title_en,pages,is_publish,created_at) VALUES (?,?,?,?,?,1,?)",
-    row.id, num, b.title, b.titleEn || b.title, pages, now()
+    "INSERT INTO chapters (series_id,number,title,title_en,pages,is_publish,created_at) VALUES (?,?,?,?,?,?,?)",
+    row.id, num, b.title, b.titleEn || b.title, pages, b.is_publish === false ? 0 : 1, now()
   ).id;
   run("UPDATE series SET updated_at=? WHERE id=?", now(), row.id);
-  res.status(201).json({ chapter: { id, number: num, title: b.title, pages } });
+  const ch = get("SELECT * FROM chapters WHERE id=?", id);
+  res.status(201).json({ chapter: ch });
+});
+
+function chapterOwner(req, res) {
+  const ch = get("SELECT c.*, s.author_id FROM chapters c JOIN series s ON s.id=c.series_id WHERE c.id=?", Number(req.params.id));
+  if (!ch) { res.status(404).json({ error: "not_found" }); return null; }
+  if (ch.author_id !== req.user.id) { res.status(403).json({ error: "forbidden" }); return null; }
+  return ch;
+}
+
+app.patch("/api/chapters/:id", requireAuth, (req, res) => {
+  const ch = chapterOwner(req, res);
+  if (!ch) return;
+  const b = req.body || {};
+  const sets = [];
+  const params = [];
+  if (b.title !== undefined) { sets.push("title = ?"); params.push(String(b.title).slice(0, MAX_LEN.title)); }
+  if (b.titleEn !== undefined) { sets.push("title_en = ?"); params.push(String(b.titleEn).slice(0, MAX_LEN.title)); }
+  if (b.is_publish !== undefined) { sets.push("is_publish = ?"); params.push(b.is_publish ? 1 : 0); }
+  if (b.pages !== undefined) { sets.push("pages = ?"); params.push(Math.max(4, Math.min(200, Number(b.pages) || 24))); }
+  if (!sets.length) return res.status(400).json({ error: "no_fields" });
+  params.push(ch.id);
+  db.prepare(`UPDATE chapters SET ${sets.join(", ")} WHERE id=?`).run(...params);
+  res.json({ chapter: get("SELECT * FROM chapters WHERE id=?", ch.id) });
+});
+
+app.delete("/api/chapters/:id", requireAuth, (req, res) => {
+  const ch = chapterOwner(req, res);
+  if (!ch) return;
+  run("DELETE FROM chapters WHERE id=?", ch.id);
+  res.json({ ok: true });
 });
 
 // ---- reader ----
@@ -355,16 +411,23 @@ app.get("/api/series/:slug/comments", (req, res) => {
 });
 
 app.post("/api/series/:slug/comments", requireAuth, (req, res) => {
-  const row = get("SELECT id FROM series WHERE slug=?", req.params.slug);
+  const row = get("SELECT id, author_id FROM series WHERE slug=?", req.params.slug);
   if (!row) return res.status(404).json({ error: "not_found" });
   const b = req.body || {};
-  const body = (b.body || "").trim().slice(0, 2000);
+  const body = (b.body || "").trim().slice(0, MAX_LEN.body);
   if (!body) return res.status(400).json({ error: "empty" });
   const id = run(
     "INSERT INTO comments (series_id,chapter_id,user_id,parent_id,body,created_at) VALUES (?,?,?,?,?,?)",
     row.id, b.chapterId || null, req.user.id, b.parentId || null, body, now()
   ).id;
   const c = get(`SELECT c.*, u.username, u.avatar FROM comments c JOIN users u ON u.id=c.user_id WHERE c.id=?`, id);
+  // notify series owner (unless it's their own comment)
+  if (row.author_id !== req.user.id) {
+    run(
+      "INSERT INTO notifications (user_id,series_slug,text,created_at) VALUES (?,?,?,?)",
+      row.author_id, req.params.slug, `${req.user.username} a commenté votre série.`, now()
+    );
+  }
   res.status(201).json({ comment: c });
 });
 
@@ -379,6 +442,39 @@ app.post("/api/comments/:id/like", requireAuth, (req, res) => {
     run("UPDATE comments SET likes = likes+1 WHERE id=?", id);
   }
   res.json({ liked: !exists });
+});
+
+// ---- notifications ----
+app.get("/api/notifications", requireAuth, (req, res) => {
+  const unread = get("SELECT COUNT(*) n FROM notifications WHERE user_id=? AND is_read=0", req.user.id).n;
+  const items = all(
+    "SELECT * FROM notifications WHERE user_id=? ORDER BY created_at DESC LIMIT 30", req.user.id
+  );
+  res.json({ unread, items });
+});
+
+app.post("/api/notifications/read-all", requireAuth, (req, res) => {
+  run("UPDATE notifications SET is_read=1 WHERE user_id=? AND is_read=0", req.user.id);
+  res.json({ ok: true });
+});
+
+// ---- per-series stats ----
+app.get("/api/series/:slug/stats", (req, res) => {
+  const row = get("SELECT id FROM series WHERE slug=?", req.params.slug);
+  if (!row) return res.status(404).json({ error: "not_found" });
+  const daily = all(
+    `SELECT day, SUM(n) AS views FROM views WHERE series_id=? AND day >= date('now','-14 days')
+     GROUP BY day ORDER BY day`, row.id
+  );
+  res.json({
+    daily: daily.map((d) => ({ day: d.day, views: d.views })),
+    totals: {
+      views: get("SELECT COALESCE(SUM(n),0) n FROM views WHERE series_id=?", row.id).n,
+      likes: get("SELECT COUNT(*) n FROM likes WHERE series_id=?", row.id).n,
+      follows: get("SELECT COUNT(*) n FROM follows WHERE series_id=?", row.id).n,
+      comments: get("SELECT COUNT(*) n FROM comments WHERE series_id=?", row.id).n,
+    },
+  });
 });
 
 // ---- profiles / dashboard ----
@@ -434,6 +530,11 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: "server_error" });
 });
 
-app.listen(PORT, () => {
-  console.log(`Saga Africa API on http://localhost:${PORT}/api`);
-});
+const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isMain) {
+  app.listen(PORT, () => {
+    console.log(`Saga Africa API on http://localhost:${PORT}/api`);
+  });
+}
+
+export { app };

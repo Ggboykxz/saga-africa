@@ -115,6 +115,15 @@ CREATE TABLE IF NOT EXISTS tags (
   tag TEXT NOT NULL,
   PRIMARY KEY (series_id, tag)
 );
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  series_slug TEXT NOT NULL,
+  text TEXT NOT NULL,
+  is_read INT NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL
+);
 `);
 
 // ---- helpers ----

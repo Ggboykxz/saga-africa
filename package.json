@@ -8,6 +8,7 @@
     "start": "next start",
     "server": "node server/index.mjs",
     "seed": "node server/seed.mjs",
+    "test": "node --test server/test/",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
