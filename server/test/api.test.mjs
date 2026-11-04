@@ -177,6 +177,25 @@ test("stats endpoint + search + leaderboard", async () => {
   assert.ok(lb.body.series.length >= 1);
 });
 
+test("new chapter notifies followers", async () => {
+  // owner creates the series
+  await j("/api/auth/login", { method: "POST", body: JSON.stringify({ email: "t@x.test", password: "secret123" }) });
+  const create = await j("/api/series", { method: "POST", body: JSON.stringify({
+    title: "Série Notif", titleEn: "Notif Series", synopsis: "x", synopsisEn: "x", format: "webtoon",
+  }) });
+  const slug = create.body.series.slug;
+  // follower subscribes
+  await j("/api/auth/login", { method: "POST", body: JSON.stringify({ email: "r2@x.test", password: "secret123" }) });
+  await j(`/api/series/${slug}/follow`, { method: "POST" });
+  // owner publishes a new chapter
+  await j("/api/auth/login", { method: "POST", body: JSON.stringify({ email: "t@x.test", password: "secret123" }) });
+  await j(`/api/series/${slug}/chapters`, { method: "POST", body: JSON.stringify({ title: "Chapitre frais" }) });
+  // follower sees a notification
+  await j("/api/auth/login", { method: "POST", body: JSON.stringify({ email: "r2@x.test", password: "secret123" }) });
+  const notif = await j("/api/notifications");
+  assert.ok(notif.body.items.some((n) => n.series_slug === slug && n.text.includes("Nouveau chapitre")));
+});
+
 test("library lists followed series", async () => {
   await j("/api/auth/login", { method: "POST", body: JSON.stringify({ email: "fan1@x.test", password: "secret123" }) });
   const create = await j("/api/series", { method: "POST", body: JSON.stringify({

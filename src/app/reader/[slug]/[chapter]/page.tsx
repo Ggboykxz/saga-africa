@@ -8,7 +8,7 @@ import { api } from "@/lib/api";
 import { PageArt, type PageSpec } from "@/components/panels";
 import { Comments } from "@/components/Comments";
 import { getProgress, setProgress } from "@/lib/progress";
-import { BookOpen, Sparkles, ArrowLeft, ChevronLeft, ChevronRight, SearchIcon, Play } from "@/components/icons";
+import { BookOpen, Sparkles, ArrowLeft, ChevronLeft, ChevronRight, SearchIcon, Play, Sun, Moon } from "@/components/icons";
 
 const MemoPageArt = memo(PageArt);
 
@@ -28,9 +28,24 @@ export default function ReaderPage() {
   const [pageIdx, setPageIdx] = useState(0);
   const [progress, setProgressPct] = useState(0);
   const [zoom, setZoom] = useState(false);
+  const [paper, setPaper] = useState(false);
   const pageRef = useRef<HTMLDivElement>(null);
   const scrollTick = useRef(0);
   const restored = useRef(false);
+
+  useEffect(() => {
+    try {
+      setPaper(localStorage.getItem("saga_reader_paper") === "1");
+    } catch {}
+  }, []);
+
+  const togglePaper = () => {
+    setPaper((p) => {
+      const next = !p;
+      try { localStorage.setItem("saga_reader_paper", next ? "1" : "0"); } catch {}
+      return next;
+    });
+  };
 
   useEffect(() => {
     setData(null);
@@ -113,6 +128,9 @@ export default function ReaderPage() {
             {data.preview && <span className="badge-canvas" style={{ background: "var(--brand)", color: "#240a00" }}>{t("preview_badge")}</span>}
           </Link>
           <div className="row" style={{ gap: 8 }}>
+            <button className={`btn btn-sm ${paper ? "btn-primary" : "btn-ghost"}`} onClick={togglePaper} title={paper ? t("reader_theme_ink") : t("reader_theme_paper")}>
+              {paper ? <Moon size={15} /> : <Sun size={15} />} {paper ? t("reader_theme_ink") : t("reader_theme_paper")}
+            </button>
             {!isManga && (
               <button className={`btn btn-sm ${zoom ? "btn-primary" : "btn-ghost"}`} onClick={() => setZoom(!zoom)} title={t("zoom")}>
                 <SearchIcon size={15} /> {zoom ? t("reader_zoom_on") : t("reader_zoom_off")}
@@ -143,7 +161,7 @@ export default function ReaderPage() {
       )}
 
       {isManga ? (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "24px 0 60px" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "24px 0 60px", background: paper ? "#e9e3da" : undefined }}>
           <div style={{ position: "relative", overflow: "hidden", borderRadius: "var(--r-lg)", boxShadow: "var(--shadow-3)", border: "1px solid var(--line)", maxWidth: "94vw" }}>
             <div style={{ display: "flex", transform: `translateX(${-pageIdx * 100}%)`, transition: "transform 0.3s ease" }}>
               {data.pages.map((p, i) => (
@@ -170,6 +188,7 @@ export default function ReaderPage() {
             flexDirection: "column",
             alignItems: "center",
             padding: "20px 0",
+            background: paper ? "#ece6dc" : "var(--bg)",
             ...(zoom ? { zoom: 1.35, overflowX: "auto", margin: "0 8vw" } : {}),
           }}
         >

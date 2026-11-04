@@ -392,6 +392,18 @@ app.get("/api/series/:slug/chapters", (req, res) => {
   res.json({ chapters, isOwner: !!isOwner });
 });
 
+function notifyNewChapter(seriesSlug, chapterTitle, chapterNumber) {
+  const followers = all("SELECT user_id FROM follows WHERE series_id = (SELECT id FROM series WHERE slug=?)", seriesSlug);
+  const author = get("SELECT author_id FROM series WHERE slug=?", seriesSlug);
+  for (const f of followers) {
+    if (author && f.user_id === author.author_id) continue;
+    run(
+      "INSERT INTO notifications (user_id,series_slug,text,created_at) VALUES (?,?,?,?)",
+      f.user_id, seriesSlug, `Nouveau chapitre #${chapterNumber} — ${String(chapterTitle).slice(0, 60)}`, now()
+    );
+  }
+}
+
 app.post("/api/series/:slug/chapters", requireAuth, (req, res) => {
   const row = get("SELECT * FROM series WHERE slug=?", req.params.slug);
   if (!row) return res.status(404).json({ error: "not_found" });
@@ -406,6 +418,7 @@ app.post("/api/series/:slug/chapters", requireAuth, (req, res) => {
   ).id;
   run("UPDATE series SET updated_at=? WHERE id=?", now(), row.id);
   const ch = get("SELECT * FROM chapters WHERE id=?", id);
+  if (ch.is_publish) notifyNewChapter(req.params.slug, ch.title, ch.number);
   res.status(201).json({ chapter: ch });
 });
 
@@ -429,7 +442,12 @@ app.patch("/api/chapters/:id", requireAuth, (req, res) => {
   if (!sets.length) return res.status(400).json({ error: "no_fields" });
   params.push(ch.id);
   db.prepare(`UPDATE chapters SET ${sets.join(", ")} WHERE id=?`).run(...params);
-  res.json({ chapter: get("SELECT * FROM chapters WHERE id=?", ch.id) });
+  const updated = get("SELECT * FROM chapters WHERE id=?", ch.id);
+  if (b.is_publish === true && !ch.is_publish) {
+    const series = get("SELECT slug FROM series WHERE id=?", ch.series_id);
+    if (series) notifyNewChapter(series.slug, updated.title, updated.number);
+  }
+  res.json({ chapter: updated });
 });
 
 app.delete("/api/chapters/:id", requireAuth, (req, res) => {
